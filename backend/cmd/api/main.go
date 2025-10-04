@@ -5,7 +5,6 @@ import (
 	"better-uptime/internal/api"
 	db "better-uptime/internal/db/sqlc"
 	"context"
-
 	"fmt"
 	"log"
 
@@ -13,20 +12,26 @@ import (
 )
 
 func main() {
+	// Load config
+	cfg := config.LoadConfig()
+
+	if cfg.POSTGRES_CONNECTION == "" {
+		log.Fatal("POSTGRES_CONNECTION is empty! Check your .env")
+	}
+	fmt.Println("Connecting to DB:", cfg.POSTGRES_CONNECTION)
 
 	// Connect to DB
-	cfg := config.LoadConfig()
 	pool, err := pgxpool.New(context.Background(), cfg.POSTGRES_CONNECTION)
 	if err != nil {
 		log.Fatalf("Cannot connect to DB: %v", err)
 	}
 	defer pool.Close()
 
-	store := db.NewStore(pool) // <-- this creates Store
-	defer pool.Close()
+	// Create store
+	store := db.NewStore(pool)
 
+	// Start server
 	server := api.NewServer(store, cfg)
-
 	fmt.Printf("Server running on port %s\n", cfg.PORT)
 	if err := server.Start(); err != nil {
 		log.Fatalf("Server failed: %v", err)

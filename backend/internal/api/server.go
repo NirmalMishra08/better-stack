@@ -5,15 +5,17 @@ import (
 	"net/http"
 
 	"better-uptime/config"
+	"better-uptime/internal/api/auth"
 	db "better-uptime/internal/db/sqlc"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	store  db.Store
-	cfg    *config.Config
-	router *chi.Mux
+	store       db.Store
+	cfg         *config.Config
+	router      *chi.Mux
+	authHandler *auth.Handler
 }
 
 type ServerConfig struct {
@@ -29,18 +31,24 @@ type ServerConfig struct {
 
 // NewServer creates a new API server instance
 func NewServer(store db.Store, cfg *config.Config) *Server {
-	r := chi.NewRouter()
 
-	// Simple health check route
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("TFC backend running 🚀"))
-	})
-
-	return &Server{
+	// Create the server instance first
+	server := &Server{
 		store:  store,
 		cfg:    cfg,
-		router: r,
 	}
+
+	// Initialize the auth handler with only required dependencies
+	server.authHandler = auth.NewHandler(cfg, store) 
+
+	// You can now mount auth routes here like:
+	// r.Post("/login", server.authHandler.Login)
+
+	server.router = server.routes()
+
+	
+
+	return server
 }
 
 // Start launches the HTTP server
