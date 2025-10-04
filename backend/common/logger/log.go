@@ -39,6 +39,11 @@ type logger interface {
 var l logger
 
 func write(s severity, msg string, args ...any) {
+	if l == nil {
+		log.Printf("[fallback][%v] %s", s, fmt.Sprintf(msg, args...))
+		return
+	}
+
 	l.Log(s, fmt.Sprintf(msg, args...))
 
 	if s >= fatal {
