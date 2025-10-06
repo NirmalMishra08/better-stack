@@ -8,8 +8,11 @@ import (
 )
 
 type Config struct {
-	PORT               string
-	POSTGRES_CONNECTION string
+	PORT                  string
+	POSTGRES_CONNECTION   string
+	CLOUDINARY_CLOUD_NAME string
+	CLOUDINARY_API_KEY    string
+	CLOUDINARY_API_SECRET string
 }
 
 func LoadConfig() *Config {
@@ -18,8 +21,11 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		PORT:               getEnv("PORT", "8080"),
+		PORT:                getEnv("PORT", "8080"),
 		POSTGRES_CONNECTION: getEnv("POSTGRES_CONNECTION", ""),
+		CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CLOUDINARY_API_KEY:    getEnv("CLOUDINARY_API_KEY", ""),
+		CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
 	}
 }
 

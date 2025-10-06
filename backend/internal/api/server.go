@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api/auth"
 	db "better-uptime/internal/db/sqlc"
@@ -16,6 +17,7 @@ type Server struct {
 	cfg         *config.Config
 	router      *chi.Mux
 	authHandler *auth.Handler
+	cloudinary  *cloudinary.ImageUploader
 }
 
 type ServerConfig struct {
@@ -30,23 +32,22 @@ type ServerConfig struct {
 }
 
 // NewServer creates a new API server instance
-func NewServer(store db.Store, cfg *config.Config) *Server {
+func NewServer(store db.Store, cfg *config.Config, cloudinaryUploader *cloudinary.ImageUploader) *Server {
 
 	// Create the server instance first
 	server := &Server{
-		store:  store,
-		cfg:    cfg,
+		store:      store,
+		cfg:        cfg,
+		cloudinary: cloudinaryUploader,
 	}
 
 	// Initialize the auth handler with only required dependencies
-	server.authHandler = auth.NewHandler(cfg, store) 
+	server.authHandler = auth.NewHandler(cfg, store)
 
 	// You can now mount auth routes here like:
 	// r.Post("/login", server.authHandler.Login)
 
 	server.router = server.routes()
-
-	
 
 	return server
 }
