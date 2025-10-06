@@ -7,6 +7,7 @@ import (
 	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api/auth"
+	"better-uptime/internal/api/monitor"
 	db "better-uptime/internal/db/sqlc"
 
 	"github.com/go-chi/chi/v5"
@@ -17,6 +18,7 @@ type Server struct {
 	cfg         *config.Config
 	router      *chi.Mux
 	authHandler *auth.Handler
+	monitorHandler *monitor.Handler
 	cloudinary  *cloudinary.ImageUploader
 }
 

@@ -12,12 +12,19 @@ import (
 )
 
 type Querier interface {
+	CreateMonitor(ctx context.Context, arg CreateMonitorParams) (Monitor, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) (UserProfile, error)
+	DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) error
 	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
+	GetActiveMonitors(ctx context.Context) ([]Monitor, error)
+	GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) (Monitor, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
+	GetUserMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
 	GetUserProfile(ctx context.Context, userID pgtype.UUID) (UserProfile, error)
+	ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (Monitor, error)
+	UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (Monitor, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UserProfile, error)
