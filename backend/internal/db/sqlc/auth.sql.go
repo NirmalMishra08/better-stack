@@ -40,8 +40,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const findOrCreateUser = `-- name: FindOrCreateUser :one
-INSERT INTO users (email, provider, phone, fullname, password_hash, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+INSERT INTO users (id, email, provider, phone, fullname, password_hash, created_at, updated_at)
+VALUES (COALESCE($6, gen_random_uuid()), $1, $2, $3, $4, $5, NOW(), NOW())
 ON CONFLICT (email)
 DO UPDATE SET
     phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),
@@ -49,7 +49,7 @@ DO UPDATE SET
     fullname = COALESCE(NULLIF(EXCLUDED.fullname, ''), users.fullname),
     password_hash = EXCLUDED.password_hash,
     updated_at = NOW()
-RETURNING id, email, fullname, password_hash, phone, role, provider
+RETURNING id, phone, email, fullname, provider, password_hash, role, profile_status, created_at, updated_at
 `
 
 type FindOrCreateUserParams struct {
@@ -58,35 +58,30 @@ type FindOrCreateUserParams struct {
 	Phone        pgtype.Text `json:"phone"`
 	Fullname     string      `json:"fullname"`
 	PasswordHash pgtype.Text `json:"password_hash"`
+	Column6      interface{} `json:"column_6"`
 }
 
-type FindOrCreateUserRow struct {
-	ID           uuid.UUID   `json:"id"`
-	Email        string      `json:"email"`
-	Fullname     string      `json:"fullname"`
-	PasswordHash pgtype.Text `json:"password_hash"`
-	Phone        pgtype.Text `json:"phone"`
-	Role         UserRole    `json:"role"`
-	Provider     Provider    `json:"provider"`
-}
-
-func (q *Queries) FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (FindOrCreateUserRow, error) {
+func (q *Queries) FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, findOrCreateUser,
 		arg.Email,
 		arg.Provider,
 		arg.Phone,
 		arg.Fullname,
 		arg.PasswordHash,
+		arg.Column6,
 	)
-	var i FindOrCreateUserRow
+	var i User
 	err := row.Scan(
 		&i.ID,
+		&i.Phone,
 		&i.Email,
 		&i.Fullname,
-		&i.PasswordHash,
-		&i.Phone,
-		&i.Role,
 		&i.Provider,
+		&i.PasswordHash,
+		&i.Role,
+		&i.ProfileStatus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -114,13 +109,36 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, phone, email, fullname, provider, password_hash, role, profile_status, created_at, updated_at FROM users 
-WHERE id = $1
+SELECT u.id, phone, email, fullname, provider, password_hash, role, profile_status, u.created_at, u.updated_at, up.id, user_id, is_premium, stripe_id, name, bio, up.created_at, up.updated_at FROM 
+users u
+LEFT JOIN user_profile up ON u.id = up.user_id 
+WHERE u.id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+type GetUserByIDRow struct {
+	ID            uuid.UUID          `json:"id"`
+	Phone         pgtype.Text        `json:"phone"`
+	Email         string             `json:"email"`
+	Fullname      string             `json:"fullname"`
+	Provider      Provider           `json:"provider"`
+	PasswordHash  pgtype.Text        `json:"password_hash"`
+	Role          UserRole           `json:"role"`
+	ProfileStatus NullProfileStatus  `json:"profile_status"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID_2          pgtype.Int4        `json:"id_2"`
+	UserID        pgtype.UUID        `json:"user_id"`
+	IsPremium     pgtype.Bool        `json:"is_premium"`
+	StripeID      pgtype.Text        `json:"stripe_id"`
+	Name          pgtype.Text        `json:"name"`
+	Bio           pgtype.Text        `json:"bio"`
+	CreatedAt_2   pgtype.Timestamp   `json:"created_at_2"`
+	UpdatedAt_2   pgtype.Timestamp   `json:"updated_at_2"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Phone,
@@ -132,6 +150,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.ProfileStatus,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ID_2,
+		&i.UserID,
+		&i.IsPremium,
+		&i.StripeID,
+		&i.Name,
+		&i.Bio,
+		&i.CreatedAt_2,
+		&i.UpdatedAt_2,
 	)
 	return i, err
 }

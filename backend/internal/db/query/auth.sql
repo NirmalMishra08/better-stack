@@ -6,17 +6,21 @@ SELECT * FROM users WHERE email = $1;
 
 
 -- name: GetUserByID :one
-SELECT * FROM users 
-WHERE id = $1;
+SELECT * FROM 
+users u
+LEFT JOIN user_profile up ON u.id = up.user_id 
+WHERE u.id = $1;
+
 
 -- name: UpdateUserPassword :exec
 UPDATE users 
 SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1;
 
+
 -- name: FindOrCreateUser :one
-INSERT INTO users (email, provider, phone, fullname, password_hash, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+INSERT INTO users (id, email, provider, phone, fullname, password_hash, created_at, updated_at)
+VALUES (COALESCE($6, gen_random_uuid()), $1, $2, $3, $4, $5, NOW(), NOW())
 ON CONFLICT (email)
 DO UPDATE SET
     phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),
@@ -24,4 +28,4 @@ DO UPDATE SET
     fullname = COALESCE(NULLIF(EXCLUDED.fullname, ''), users.fullname),
     password_hash = EXCLUDED.password_hash,
     updated_at = NOW()
-RETURNING id, email, fullname, password_hash, phone, role, provider;
+RETURNING *;

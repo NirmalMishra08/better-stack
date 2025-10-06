@@ -14,9 +14,9 @@ import (
 type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) (UserProfile, error)
-	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (FindOrCreateUserRow, error)
+	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	GetUserProfile(ctx context.Context, userID pgtype.UUID) (UserProfile, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

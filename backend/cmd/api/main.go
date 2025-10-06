@@ -1,6 +1,7 @@
 package main
 
 import (
+	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api"
 	db "better-uptime/internal/db/sqlc"
@@ -27,11 +28,23 @@ func main() {
 	}
 	defer pool.Close()
 
+	// Initialize Cloudinary
+	cloudinaryUploader, err := cloudinary.NewImageUploader(
+		cfg.CLOUDINARY_CLOUD_NAME,
+		cfg.CLOUDINARY_API_KEY,
+		cfg.CLOUDINARY_API_SECRET,
+	)
+	if err != nil {
+		log.Printf("Warning: Cloudinary initialization failed: %v", err)
+		// Continue without Cloudinary if it's optional
+	} else {
+		fmt.Println("Cloudinary initialized successfully")
+	}
 	// Create store
 	store := db.NewStore(pool)
 
 	// Start server
-	server := api.NewServer(store, cfg)
+	server := api.NewServer(store, cfg,cloudinaryUploader)
 	fmt.Printf("Server running on port %s\n", cfg.PORT)
 	if err := server.Start(); err != nil {
 		log.Fatalf("Server failed: %v", err)
