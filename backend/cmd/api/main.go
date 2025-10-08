@@ -28,6 +28,9 @@ func main() {
 	}
 	defer pool.Close()
 
+	
+
+
 	// Initialize Cloudinary
 	cloudinaryUploader, err := cloudinary.NewImageUploader(
 		cfg.CLOUDINARY_CLOUD_NAME,

@@ -7,17 +7,19 @@ import (
 	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api/auth"
+	"better-uptime/internal/api/monitor"
 	db "better-uptime/internal/db/sqlc"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	store       db.Store
-	cfg         *config.Config
-	router      *chi.Mux
-	authHandler *auth.Handler
-	cloudinary  *cloudinary.ImageUploader
+	store          db.Store
+	cfg            *config.Config
+	router         *chi.Mux
+	authHandler    *auth.Handler
+	monitorHandler *monitor.Handler
+	cloudinary     *cloudinary.ImageUploader
 }
 
 type ServerConfig struct {
@@ -43,6 +45,7 @@ func NewServer(store db.Store, cfg *config.Config, cloudinaryUploader *cloudinar
 
 	// Initialize the auth handler with only required dependencies
 	server.authHandler = auth.NewHandler(cfg, store)
+	server.monitorHandler = monitor.NewHandler(cfg, store)
 
 	// You can now mount auth routes here like:
 	// r.Post("/login", server.authHandler.Login)
