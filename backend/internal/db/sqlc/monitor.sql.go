@@ -71,10 +71,11 @@ func (q *Queries) DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) er
 const getActiveMonitors = `-- name: GetActiveMonitors :many
 SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors 
 WHERE is_active = true
+AND user_id = $1
 `
 
-func (q *Queries) GetActiveMonitors(ctx context.Context) ([]Monitor, error) {
-	rows, err := q.db.Query(ctx, getActiveMonitors)
+func (q *Queries) GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error) {
+	rows, err := q.db.Query(ctx, getActiveMonitors, userID)
 	if err != nil {
 		return nil, err
 	}

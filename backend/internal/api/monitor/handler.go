@@ -33,7 +33,12 @@ func (h *Handler) Routes() *chi.Mux {
 
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.TokenMiddleware(h.store))
-		r.Get("/create-monitor",h.CreateMonitor )
+		r.Post("/create-monitor",h.CreateMonitor )
+		r.Get("/get-monitor/{id}", h.GetMonitorByID)
+		r.Post("/toggle-monitor", h.ToggleMonitor)
+		r.Delete("/delete-monitor/{id}", h.DeleteMonitor)
+		r.Get("/get-active-monitors", h.GetAllActiveMonitors)
+		r.Get("/get-all-monitors", h.GetAllMonitors)
 
 	})
 

@@ -17,7 +17,7 @@ type Querier interface {
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) (UserProfile, error)
 	DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) error
 	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
-	GetActiveMonitors(ctx context.Context) ([]Monitor, error)
+	GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
 	GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) (Monitor, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
