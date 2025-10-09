@@ -74,7 +74,7 @@ CREATE TABLE monitor_logs (
 );
 
 
-CREATE TABLE ALERT(
+CREATE TABLE alerts(
     id SERIAL PRIMARY KEY,
     monitor_id INTEGER REFERENCES monitors(id),
     alert_type TEXT,
