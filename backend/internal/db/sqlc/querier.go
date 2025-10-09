@@ -39,6 +39,7 @@ type Querier interface {
 	GetUserSubscription(ctx context.Context, userID pgtype.UUID) (Subscription, error)
 	ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (Monitor, error)
 	UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (Monitor, error)
+	UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStatusParams) (Monitor, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

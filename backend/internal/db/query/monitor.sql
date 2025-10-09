@@ -36,6 +36,12 @@ SET is_active = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
 RETURNING *;
 
+-- name: UpdateMonitorStatus :one
+UPDATE monitors 
+SET status = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
 
 -- name: GetActiveMonitors :many
 SELECT * FROM monitors 
