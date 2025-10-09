@@ -12,20 +12,36 @@ import (
 )
 
 type Querier interface {
+	CalculateUptimePercentage(ctx context.Context, arg CalculateUptimePercentageParams) (CalculateUptimePercentageRow, error)
+	CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert, error)
 	CreateMonitor(ctx context.Context, arg CreateMonitorParams) (Monitor, error)
+	CreateMonitorLog(ctx context.Context, arg CreateMonitorLogParams) (MonitorLog, error)
+	CreateOrUpdateAnalytics(ctx context.Context, arg CreateOrUpdateAnalyticsParams) (Analytic, error)
+	CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (Subscription, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) (UserProfile, error)
+	DeactivateSubscription(ctx context.Context, userID pgtype.UUID) error
 	DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) error
 	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
 	GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
+	GetAnalytics(ctx context.Context, monitorID pgtype.Int4) (Analytic, error)
+	GetAverageResponseTime(ctx context.Context, arg GetAverageResponseTimeParams) (pgtype.Numeric, error)
+	GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsParams) ([]Alert, error)
 	GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) (Monitor, error)
+	GetMonitorLogs(ctx context.Context, arg GetMonitorLogsParams) ([]MonitorLog, error)
+	GetMonitorLogsByTimeRange(ctx context.Context, arg GetMonitorLogsByTimeRangeParams) ([]MonitorLog, error)
+	GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams) ([]GetRecentAlertsRow, error)
+	GetRecentMonitorStatus(ctx context.Context, monitorID pgtype.Int4) (GetRecentMonitorStatusRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	GetUserMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
 	GetUserProfile(ctx context.Context, userID pgtype.UUID) (UserProfile, error)
+	GetUserSubscription(ctx context.Context, userID pgtype.UUID) (Subscription, error)
 	ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (Monitor, error)
 	UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (Monitor, error)
+	UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStatusParams) (Monitor, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
+	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UserProfile, error)
 }

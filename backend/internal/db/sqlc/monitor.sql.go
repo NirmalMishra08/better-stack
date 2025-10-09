@@ -252,3 +252,33 @@ func (q *Queries) UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (M
 	)
 	return i, err
 }
+
+const updateMonitorStatus = `-- name: UpdateMonitorStatus :one
+UPDATE monitors 
+SET status = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, user_id, url, method, type, interval, status, is_active, created_at, updated_at
+`
+
+type UpdateMonitorStatusParams struct {
+	ID     int32             `json:"id"`
+	Status NullMonitorStatus `json:"status"`
+}
+
+func (q *Queries) UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStatusParams) (Monitor, error) {
+	row := q.db.QueryRow(ctx, updateMonitorStatus, arg.ID, arg.Status)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Url,
+		&i.Method,
+		&i.Type,
+		&i.Interval,
+		&i.Status,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
