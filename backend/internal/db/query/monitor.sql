@@ -47,3 +47,8 @@ RETURNING *;
 SELECT * FROM monitors 
 WHERE is_active = true
 AND user_id = $1;
+
+
+-- name: GetMonitorByIdandURL :one
+SELECT * FROM monitors
+where user_id = $1 AND url = $2;

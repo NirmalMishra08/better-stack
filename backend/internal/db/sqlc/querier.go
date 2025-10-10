@@ -28,6 +28,7 @@ type Querier interface {
 	GetAverageResponseTime(ctx context.Context, arg GetAverageResponseTimeParams) (pgtype.Numeric, error)
 	GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsParams) ([]Alert, error)
 	GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) (Monitor, error)
+	GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdandURLParams) (Monitor, error)
 	GetMonitorLogs(ctx context.Context, arg GetMonitorLogsParams) ([]MonitorLog, error)
 	GetMonitorLogsByTimeRange(ctx context.Context, arg GetMonitorLogsByTimeRangeParams) ([]MonitorLog, error)
 	GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams) ([]GetRecentAlertsRow, error)

@@ -133,6 +133,34 @@ func (q *Queries) GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) 
 	return i, err
 }
 
+const getMonitorByIdandURL = `-- name: GetMonitorByIdandURL :one
+SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors
+where user_id = $1 AND url = $2
+`
+
+type GetMonitorByIdandURLParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Url    string      `json:"url"`
+}
+
+func (q *Queries) GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdandURLParams) (Monitor, error) {
+	row := q.db.QueryRow(ctx, getMonitorByIdandURL, arg.UserID, arg.Url)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Url,
+		&i.Method,
+		&i.Type,
+		&i.Interval,
+		&i.Status,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserMonitors = `-- name: GetUserMonitors :many
 SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors 
 WHERE user_id = $1 

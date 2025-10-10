@@ -23,7 +23,7 @@ func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) er
 	status := "down"
 
 	if err != nil {
-		statusCode = 0
+		statusCode = int32(resp.StatusCode)
 	} else {
 		defer resp.Body.Close()
 		statusCode = int32(resp.StatusCode)
