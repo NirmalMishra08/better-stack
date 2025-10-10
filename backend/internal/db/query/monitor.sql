@@ -45,8 +45,12 @@ RETURNING *;
 
 -- name: GetActiveMonitors :many
 SELECT * FROM monitors 
-WHERE is_active = true
-AND user_id = $1;
+WHERE is_active = true;
+
+-- name: GetActiveMonitorsForUser :many
+SELECT * FROM monitors 
+WHERE is_active = true AND user_id = $1;
+
 
 
 -- name: GetMonitorByIdandURL :one

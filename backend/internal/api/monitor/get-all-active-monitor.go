@@ -21,7 +21,7 @@ func (h *Handler) GetAllActiveMonitors(w http.ResponseWriter, r *http.Request) {
 	userId := payload.UserId
 
 	// Fetch the monitor from the database
-	ActiveMonitors, err := h.store.GetActiveMonitors(ctx, pgtype.UUID{Bytes: userId, Valid: true});
+	ActiveMonitors, err := h.store.GetActiveMonitorsForUser(ctx, pgtype.UUID{Bytes: userId, Valid: true})
 	if err != nil {
 		util.ErrorJson(w, errors.New("monitor not found"))
 		return

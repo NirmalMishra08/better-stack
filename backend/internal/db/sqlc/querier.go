@@ -23,7 +23,8 @@ type Querier interface {
 	DeactivateSubscription(ctx context.Context, userID pgtype.UUID) error
 	DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) error
 	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
-	GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
+	GetActiveMonitors(ctx context.Context) ([]Monitor, error)
+	GetActiveMonitorsForUser(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
 	GetAnalytics(ctx context.Context, monitorID pgtype.Int4) (Analytic, error)
 	GetAverageResponseTime(ctx context.Context, arg GetAverageResponseTimeParams) (pgtype.Numeric, error)
 	GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsParams) ([]Alert, error)

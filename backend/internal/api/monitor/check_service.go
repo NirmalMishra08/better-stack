@@ -42,7 +42,7 @@ func (h *Handler) performMonitorCheck(ctx context.Context, monitor db.Monitor) (
 	req.Header.Set("Accept", "*/*")
 
 	resp, err := client.Do(req)
-	responseTime := time.Since(start).Seconds()
+	responseTime := time.Since(start).Seconds()*1000 // in milliseconds
 
 	var statusCode int32
 	var status string = "down"
