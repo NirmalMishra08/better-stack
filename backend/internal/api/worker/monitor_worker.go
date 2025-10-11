@@ -11,38 +11,45 @@ import (
 
 type MonitorWorker struct {
 	handler  *monitor.Handler
-	interval time.Duration
 }
 
 func NewMonitorWorker(store db.Store, config *config.Config) *MonitorWorker {
 	return &MonitorWorker{
-		handler:  monitor.NewHandler(config, store),
-		interval: 1 * time.Minute,
+		handler: monitor.NewHandler(config, store),
 	}
 }
 
 func (w *MonitorWorker) Start(ctx context.Context) {
-	ticker := time.NewTicker(w.interval)
-	defer ticker.Stop()
+
+	commonIntervals := []int32{30, 60, 120, 300, 600, 1800, 3600}
 
 	log.Println("🚀 Monitor worker started")
 
-	w.runChecks(ctx)
+	for _, interval := range commonIntervals {
+		go w.runIntervalGroup(ctx, interval)
+	}
+}
+
+func (w *MonitorWorker) runIntervalGroup(ctx context.Context, interval int32) {
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
+
+	log.Printf("⏰ Interval group %ds started", interval)
 
 	for {
 		select {
 		case <-ticker.C:
-			w.runChecks(ctx)
+			w.checkMonitorsByInterval(ctx, interval)
 		case <-ctx.Done():
-			log.Println("🛑 Monitor worker stopped")
+			log.Printf("🛑 Interval group %ds stopped", interval)
 			return
 		}
 	}
 }
 
-func (w *MonitorWorker) runChecks(ctx context.Context) {
+func (w *MonitorWorker) checkMonitorsByInterval(ctx context.Context, interval int32) {
 	// Use handler's store to get monitors
-	monitors, err := w.handler.GetStore().GetActiveMonitors(ctx)  // ✅ Use handler's store
+	monitors, err := w.handler.GetStore().GetMonitorsByInterval(ctx, interval) // ✅ Use handler's store
 	if err != nil {
 		log.Printf("❌ Failed to get active monitors: %v", err)
 		return

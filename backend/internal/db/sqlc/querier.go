@@ -32,6 +32,7 @@ type Querier interface {
 	GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdandURLParams) (Monitor, error)
 	GetMonitorLogs(ctx context.Context, arg GetMonitorLogsParams) ([]MonitorLog, error)
 	GetMonitorLogsByTimeRange(ctx context.Context, arg GetMonitorLogsByTimeRangeParams) ([]MonitorLog, error)
+	GetMonitorsByInterval(ctx context.Context, interval int32) ([]Monitor, error)
 	GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams) ([]GetRecentAlertsRow, error)
 	GetRecentMonitorStatus(ctx context.Context, monitorID pgtype.Int4) (GetRecentMonitorStatusRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)

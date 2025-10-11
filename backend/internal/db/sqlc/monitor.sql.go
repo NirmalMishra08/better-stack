@@ -196,6 +196,41 @@ func (q *Queries) GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdan
 	return i, err
 }
 
+const getMonitorsByInterval = `-- name: GetMonitorsByInterval :many
+SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors WHERE is_active = true AND interval = $1
+`
+
+func (q *Queries) GetMonitorsByInterval(ctx context.Context, interval int32) ([]Monitor, error) {
+	rows, err := q.db.Query(ctx, getMonitorsByInterval, interval)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Monitor{}
+	for rows.Next() {
+		var i Monitor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Url,
+			&i.Method,
+			&i.Type,
+			&i.Interval,
+			&i.Status,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserMonitors = `-- name: GetUserMonitors :many
 SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors 
 WHERE user_id = $1 
