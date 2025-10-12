@@ -49,6 +49,7 @@ func (h *Handler) Routes() *chi.Mux {
 		r.Delete("/delete-monitor/{id}", h.DeleteMonitor)
 		r.Get("/get-active-monitors", h.GetAllActiveMonitors)
 		r.Get("/get-all-monitors", h.GetAllMonitors)
+		r.Post("/take-screenshot", h.TakeScreenshot)
 
 	})
 
