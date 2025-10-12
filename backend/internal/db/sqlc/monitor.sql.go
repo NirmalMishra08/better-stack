@@ -71,11 +71,46 @@ func (q *Queries) DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) er
 const getActiveMonitors = `-- name: GetActiveMonitors :many
 SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors 
 WHERE is_active = true
-AND user_id = $1
 `
 
-func (q *Queries) GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error) {
-	rows, err := q.db.Query(ctx, getActiveMonitors, userID)
+func (q *Queries) GetActiveMonitors(ctx context.Context) ([]Monitor, error) {
+	rows, err := q.db.Query(ctx, getActiveMonitors)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Monitor{}
+	for rows.Next() {
+		var i Monitor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Url,
+			&i.Method,
+			&i.Type,
+			&i.Interval,
+			&i.Status,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getActiveMonitorsForUser = `-- name: GetActiveMonitorsForUser :many
+SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors 
+WHERE is_active = true AND user_id = $1
+`
+
+func (q *Queries) GetActiveMonitorsForUser(ctx context.Context, userID pgtype.UUID) ([]Monitor, error) {
+	rows, err := q.db.Query(ctx, getActiveMonitorsForUser, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +166,69 @@ func (q *Queries) GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) 
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getMonitorByIdandURL = `-- name: GetMonitorByIdandURL :one
+SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors
+where user_id = $1 AND url = $2
+`
+
+type GetMonitorByIdandURLParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Url    string      `json:"url"`
+}
+
+func (q *Queries) GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdandURLParams) (Monitor, error) {
+	row := q.db.QueryRow(ctx, getMonitorByIdandURL, arg.UserID, arg.Url)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Url,
+		&i.Method,
+		&i.Type,
+		&i.Interval,
+		&i.Status,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getMonitorsByInterval = `-- name: GetMonitorsByInterval :many
+SELECT id, user_id, url, method, type, interval, status, is_active, created_at, updated_at FROM monitors WHERE is_active = true AND interval = $1
+`
+
+func (q *Queries) GetMonitorsByInterval(ctx context.Context, interval int32) ([]Monitor, error) {
+	rows, err := q.db.Query(ctx, getMonitorsByInterval, interval)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Monitor{}
+	for rows.Next() {
+		var i Monitor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Url,
+			&i.Method,
+			&i.Type,
+			&i.Interval,
+			&i.Status,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUserMonitors = `-- name: GetUserMonitors :many

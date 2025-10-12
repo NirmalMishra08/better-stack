@@ -4,6 +4,7 @@ import (
 	"better-uptime/common/firebase"
 	"better-uptime/common/util"
 	db "better-uptime/internal/db/sqlc"
+
 	"context"
 	"errors"
 	"net/http"

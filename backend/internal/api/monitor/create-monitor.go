@@ -32,6 +32,16 @@ func (h *Handler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if a monitor with the same URL already exists for this user
+	existingMonitor, err := h.store.GetMonitorByIdandURL(ctx, db.GetMonitorByIdandURLParams{
+		UserID: pgtype.UUID{Bytes: userId, Valid: true},
+		Url:    req.Url,
+	})
+	if err == nil && existingMonitor.ID != 0 {
+		util.ErrorJson(w, fmt.Errorf("a monitor with the same URL already exists"))
+		return
+	}
+
 	monitor, err := h.store.CreateMonitor(ctx, db.CreateMonitorParams{
 		UserID:   pgtype.UUID{Bytes: userId, Valid: true},
 		Url:      req.Url,

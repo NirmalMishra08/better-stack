@@ -23,13 +23,16 @@ type Querier interface {
 	DeactivateSubscription(ctx context.Context, userID pgtype.UUID) error
 	DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) error
 	FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error)
-	GetActiveMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
+	GetActiveMonitors(ctx context.Context) ([]Monitor, error)
+	GetActiveMonitorsForUser(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
 	GetAnalytics(ctx context.Context, monitorID pgtype.Int4) (Analytic, error)
 	GetAverageResponseTime(ctx context.Context, arg GetAverageResponseTimeParams) (pgtype.Numeric, error)
 	GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsParams) ([]Alert, error)
 	GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) (Monitor, error)
+	GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdandURLParams) (Monitor, error)
 	GetMonitorLogs(ctx context.Context, arg GetMonitorLogsParams) ([]MonitorLog, error)
 	GetMonitorLogsByTimeRange(ctx context.Context, arg GetMonitorLogsByTimeRangeParams) ([]MonitorLog, error)
+	GetMonitorsByInterval(ctx context.Context, interval int32) ([]Monitor, error)
 	GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams) ([]GetRecentAlertsRow, error)
 	GetRecentMonitorStatus(ctx context.Context, monitorID pgtype.Int4) (GetRecentMonitorStatusRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)

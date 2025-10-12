@@ -5,6 +5,7 @@ import (
 	"better-uptime/common/routes"
 	"better-uptime/config"
 	db "better-uptime/internal/db/sqlc"
+	"context"
 	"go/token"
 
 	"github.com/go-chi/chi/v5"
@@ -21,11 +22,19 @@ type HandlerConfig struct {
 	TokenMaker token.Token
 }
 
+func (h *Handler) GetStore() db.Store {
+	return h.store
+}
+
 func NewHandler(config *config.Config, store db.Store) *Handler {
 	return &Handler{
 		config: config,
 		store:  store,
 	}
+}
+
+func (h *Handler) PerformMonitorCheck(ctx context.Context, monitor db.Monitor) (*TestURLResponse, error) {
+	return h.performMonitorCheck(ctx, monitor)
 }
 
 func (h *Handler) Routes() *chi.Mux {

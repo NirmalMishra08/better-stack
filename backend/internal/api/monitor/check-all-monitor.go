@@ -17,13 +17,13 @@ func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) er
 
 	start := time.Now()
 	resp, err := client.Get(monitor.Url)
-	responseTime := time.Since(start).Seconds()
+	responseTime := time.Since(start).Seconds()*1000
 
 	var statusCode int32
 	status := "down"
 
 	if err != nil {
-		statusCode = 0
+		statusCode = int32(resp.StatusCode)
 	} else {
 		defer resp.Body.Close()
 		statusCode = int32(resp.StatusCode)
@@ -73,7 +73,7 @@ func (h *Handler) CheckAllActiveMonitors(w http.ResponseWriter, r *http.Request)
 	}
 	userId := payload.UserId
 
-	monitors, err := h.store.GetActiveMonitors(ctx, pgtype.UUID{Bytes: userId, Valid: true})
+	monitors, err := h.store.GetActiveMonitorsForUser(ctx, pgtype.UUID{Bytes: userId, Valid: true})
 	if err != nil {
 		util.ErrorJson(w, err)
 		return
