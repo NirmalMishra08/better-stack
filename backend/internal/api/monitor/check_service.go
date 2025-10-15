@@ -42,13 +42,14 @@ func (h *Handler) performMonitorCheck(ctx context.Context, monitor db.Monitor) (
 	req.Header.Set("Accept", "*/*")
 
 	resp, err := client.Do(req)
-	responseTime := time.Since(start).Seconds()*1000 // in milliseconds
+	responseTime := time.Since(start).Seconds() * 1000 // in milliseconds
 
 	var statusCode int32
 	var status string = "down"
 	var errorMsg string
 	var dnsOk bool = true
 	var sslOk bool = false
+	var screenshotUrl string
 
 	if err != nil {
 		statusCode = 0
@@ -72,6 +73,13 @@ func (h *Handler) performMonitorCheck(ctx context.Context, monitor db.Monitor) (
 		}
 	}
 
+	if status == "down" {
+		screenshotUrl, err = h.TakeScreenshot(ctx, monitor)
+		if err != nil {
+			fmt.Printf("Failed to take screenshot: %v\n", err)
+		}
+	}
+
 	// Save to monitor_logs
 	_, err = h.store.CreateMonitorLog(ctx, db.CreateMonitorLogParams{
 		MonitorID:    pgtype.Int4{Int32: monitor.ID, Valid: true},
@@ -80,6 +88,7 @@ func (h *Handler) performMonitorCheck(ctx context.Context, monitor db.Monitor) (
 		DnsOk:        pgtype.Bool{Bool: dnsOk, Valid: true},
 		SslOk:        pgtype.Bool{Bool: sslOk, Valid: true},
 		ContentOk:    pgtype.Bool{Bool: true, Valid: true}, // Basic content check
+		ScreenshotUrl: pgtype.Text{String: screenshotUrl, Valid: screenshotUrl != ""},
 	})
 	if err != nil {
 		fmt.Printf("Failed to create monitor log: %v\n", err)
