@@ -1,8 +1,10 @@
 package cloudinary
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"os"
 
@@ -25,18 +27,33 @@ type ImageUploader struct {
 }
 
 func NewImageUploader(cloudName, apiKey, apiSecret string) (*ImageUploader, error) {
-	if cloudName == "" || apiKey == "" || apiSecret == "" {
-		return nil, fmt.Errorf("cloudinary credentials are required")
-	}
 	cld, err := cloudinary.NewFromParams(cloudName, apiKey, apiSecret)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Cloudinary client: %v", err)
+		return nil, err
+	}
+	return &ImageUploader{cld: cld}, nil
+}
+
+// UploadFromReader uploads an image from an io.Reader
+func (u *ImageUploader) UploadFromReader(reader io.Reader, publicID, format string) (*uploader.UploadResult, error) {
+	ctx := context.Background()
+
+	result, err := u.cld.Upload.Upload(ctx, reader, uploader.UploadParams{
+		PublicID:     publicID,
+		Format:       format,
+		ResourceType: "image",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
 	}
 
-	return &ImageUploader{
-		cld: cld,
-		ctx: context.Background(),
-	}, nil
+	return result, nil
+}
+
+// UploadFromBytes uploads an image from byte slice (for backward compatibility)
+func (u *ImageUploader) UploadFromBytes(data []byte, publicID, format string) (*uploader.UploadResult, error) {
+	reader := bytes.NewReader(data)
+	return u.UploadFromReader(reader, publicID, format)
 }
 
 // UploadFromFile uploads an image from a file path
@@ -79,27 +96,6 @@ func (iu *ImageUploader) UploadFromMultipartFile(fileHeader *multipart.FileHeade
 	}
 
 	result, err := iu.cld.Upload.Upload(iu.ctx, file, uploadParams)
-	if err != nil {
-		return nil, fmt.Errorf("upload failed: %v", err)
-	}
-
-	return &UploadResult{
-		URL:      result.SecureURL,
-		PublicID: result.PublicID,
-		Format:   result.Format,
-		Bytes:    result.Bytes,
-		Width:    result.Width,
-		Height:   result.Height,
-	}, nil
-}
-
-// UploadFromBytes uploads an image from byte data
-func (iu *ImageUploader) UploadFromBytes(data []byte, publicID, format string) (*UploadResult, error) {
-	uploadParams := uploader.UploadParams{
-		PublicID: publicID,
-	}
-
-	result, err := iu.cld.Upload.Upload(iu.ctx, data, uploadParams)
 	if err != nil {
 		return nil, fmt.Errorf("upload failed: %v", err)
 	}

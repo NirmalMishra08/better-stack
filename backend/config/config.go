@@ -13,6 +13,8 @@ type Config struct {
 	CLOUDINARY_CLOUD_NAME string
 	CLOUDINARY_API_KEY    string
 	CLOUDINARY_API_SECRET string
+	SCREENSHOTONE_KEY	  string
+	SCREENSHOTONE_SECRET  string
 }
 
 func LoadConfig() *Config {
@@ -26,6 +28,9 @@ func LoadConfig() *Config {
 		CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
 		CLOUDINARY_API_KEY:    getEnv("CLOUDINARY_API_KEY", ""),
 		CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
+		SCREENSHOTONE_KEY:     getEnv("SCREENSHOTONE_KEY", ""),
+		SCREENSHOTONE_SECRET:  getEnv("SCREENSHOTONE_SECRET", ""),
+
 	}
 }
 
