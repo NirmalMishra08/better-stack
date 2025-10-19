@@ -136,12 +136,12 @@ export default function Home() {
               <a href="#contact" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">Contact</a>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">
-                Sign In
-              </button>
-              <button className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-6 py-2 rounded-full hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25">
+              <a href="/dashboard" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">
+                Dashboard
+              </a>
+              <a href="/dashboard" className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-6 py-2 rounded-full hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25">
                 Get Started
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -168,16 +168,16 @@ export default function Home() {
             </div>
 
             <div className={`flex flex-col sm:flex-row gap-6 justify-center items-center mb-12 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <button className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-10 py-5 rounded-full text-lg font-semibold hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 shadow-2xl hover:shadow-cyan-500/25 animate-pulse-glow">
+              <a href="/dashboard" className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-10 py-5 rounded-full text-lg font-semibold hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-3 shadow-2xl hover:shadow-cyan-500/25 animate-pulse-glow">
                 <span>Start Monitoring Free</span>
                 <ArrowRight className="w-5 h-5" />
-              </button>
-              <button className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300 hover:scale-105 group">
+              </a>
+              <a href="/dashboard" className="flex items-center space-x-3 text-white/90 hover:text-white transition-all duration-300 hover:scale-105 group">
                 <div className="w-14 h-14 glass rounded-full flex items-center justify-center shadow-lg group-hover:shadow-cyan-500/25 transition-all duration-300">
                   <Play className="w-6 h-6 ml-1" />
                 </div>
-                <span className="font-medium text-lg">Watch Demo</span>
-              </button>
+                <span className="font-medium text-lg">View Dashboard</span>
+              </a>
             </div>
 
             {/* Stats */}
@@ -277,7 +277,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 relative">
-       
+
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10"></div>
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">
@@ -287,13 +287,13 @@ export default function Home() {
             Join thousands of businesses already monitoring their services with Better Uptime.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <button className="bg-white text-blue-600 px-10 py-5 rounded-full text-lg font-semibold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-white/25">
+            <a href="/dashboard" className="bg-white text-blue-600 px-10 py-5 rounded-full text-lg font-semibold hover:bg-blue-50 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 shadow-2xl hover:shadow-white/25">
               <span>Start Free Trial</span>
               <ArrowRight className="w-5 h-5" />
-            </button>
-            <button className="border-2 border-white text-white px-10 py-5 rounded-full text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-white/25">
-              Contact Sales
-            </button>
+            </a>
+            <a href="/dashboard" className="border-2 border-white text-white px-10 py-5 rounded-full text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-white/25">
+              View Dashboard
+            </a>
           </div>
         </div>
       </section>
