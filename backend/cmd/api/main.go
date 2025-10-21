@@ -4,7 +4,6 @@ import (
 	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api"
-	"better-uptime/internal/api/worker"
 	db "better-uptime/internal/db/sqlc"
 	"context"
 	"fmt"
@@ -48,23 +47,23 @@ func main() {
 	store := db.NewStore(pool)
 
 	// ✅ ADD THIS: Start Monitor Worker
-	worker := worker.NewMonitorWorker(store, cfg)
-	
-	// Create background context for the worker
-	workerCtx, cancelWorker := context.WithCancel(context.Background())
-	defer cancelWorker()
+	// worker := worker.NewMonitorWorker(store, cfg)
 
-	// Start worker in background
-	go worker.Start(workerCtx)
-	fmt.Println("🚀 Monitor worker started - checking monitors every minute")
+	// Create background context for the worker
+	// workerCtx, cancelWorker := context.WithCancel(context.Background())
+	// defer cancelWorker()
+
+	// // Start worker in background
+	// go worker.Start(workerCtx)
+	// fmt.Println("🚀 Monitor worker started - checking monitors every minute")
 
 	// Start server
 	server := api.NewServer(store, cfg, cloudinaryUploader)
-	
+
 	// Channel for graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	
+
 	// Start server in goroutine
 	go func() {
 		fmt.Printf("🌐 Server running on port %s\n", cfg.PORT)
@@ -77,10 +76,10 @@ func main() {
 	// Wait for shutdown signal
 	<-quit
 	fmt.Println("\n🛑 Shutting down server...")
-	
+
 	// Stop the worker
-	cancelWorker()
+	// cancelWorker()
 	fmt.Println("✅ Monitor worker stopped")
-	
+
 	fmt.Println("🎯 Application shutdown complete")
 }

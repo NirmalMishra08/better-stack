@@ -1,20 +1,24 @@
 package email
 
 import (
+	"better-uptime/config"
 	"fmt"
 	"log"
 	"net/smtp"
-	"os"
-
-	"github.com/joho/godotenv"
 )
 
-func SendHTMLEmail(to, subject, htmlBody string) error {
+func SendHTMLEmail(to string, subject string, htmlBody string) error {
 	// Load .env file (optional, but safer than hardcoding)
 	cfg := config.LoadConfig()
+	from := cfg.SMTP_EMAIL
+	password := cfg.SMTP_PASSWORD
 
-	from := cfg.Get("smtp")
-	password := os.Getenv("SMTP_PASSWORD")
+	if from == "" {
+		return fmt.Errorf("SMTP_EMAIL is empty")
+	}
+	if password == "" {
+		return fmt.Errorf("SMTP_PASSWORD is empty")
+	}
 
 	// Receiver email
 	toList := []string{to}

@@ -15,6 +15,8 @@ type Config struct {
 	CLOUDINARY_API_SECRET string
 	SCREENSHOTONE_KEY	  string
 	SCREENSHOTONE_SECRET  string
+	SMTP_EMAIL            string
+	SMTP_PASSWORD         string
 }
 
 func LoadConfig() *Config {
@@ -30,6 +32,8 @@ func LoadConfig() *Config {
 		CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
 		SCREENSHOTONE_KEY:     getEnv("SCREENSHOTONE_KEY", ""),
 		SCREENSHOTONE_SECRET:  getEnv("SCREENSHOTONE_SECRET", ""),
+		SMTP_EMAIL:            getEnv("SMTP_EMAIL", ""),
+		SMTP_PASSWORD:         getEnv("SMTP_PASSWORD", ""),
 
 	}
 }
