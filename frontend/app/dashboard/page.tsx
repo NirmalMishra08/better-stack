@@ -31,6 +31,7 @@ import {
     Trash2,
     ExternalLink
 } from 'lucide-react';
+import NewMonitorButton from './_component/NewMonitorButton';
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('overview');
@@ -189,10 +190,7 @@ export default function Dashboard() {
                                 />
                             </div>
 
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
-                                <Plus className="w-4 h-4" />
-                                <span>Add Monitor</span>
-                            </button>
+                            <NewMonitorButton/>
 
                             <button className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
                                 <Bell className="w-5 h-5" />
