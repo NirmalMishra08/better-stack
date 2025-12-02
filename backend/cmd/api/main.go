@@ -2,7 +2,6 @@ package main
 
 import (
 	"better-uptime/common/cloudinary"
-	"better-uptime/common/email"
 	"better-uptime/config"
 	"better-uptime/internal/api"
 	db "better-uptime/internal/db/sqlc"
@@ -65,10 +64,11 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	err = email.SendStatusAlert("mishranrml@gmail.com", "example.com",true, "up", "200 ms")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ---      fake code for testing email sending -- testing purposes only
+	// err = email.SendStatusAlert("mishranrml@gmail.com", "example.com",true, "up", "200 ms")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// Start server in goroutine
 	go func() {

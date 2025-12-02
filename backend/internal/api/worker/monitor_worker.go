@@ -2,6 +2,7 @@ package worker
 
 import (
 	"better-uptime/config"
+	"better-uptime/internal/api/alert"
 	"better-uptime/internal/api/monitor"
 	db "better-uptime/internal/db/sqlc"
 	"context"
@@ -10,12 +11,17 @@ import (
 )
 
 type MonitorWorker struct {
-	handler  *monitor.Handler
+	monitorHandler *monitor.Handler
+	alertHandler *alert.Handler
+
 }
+
+type TestURLResponse = alert.TestURLResponse
 
 func NewMonitorWorker(store db.Store, config *config.Config) *MonitorWorker {
 	return &MonitorWorker{
-		handler: monitor.NewHandler(config, store),
+		monitorHandler: monitor.NewHandler(config, store),
+		alertHandler: alert.NewHandler(config,store),
 	}
 }
 
@@ -49,7 +55,7 @@ func (w *MonitorWorker) runIntervalGroup(ctx context.Context, interval int32) {
 
 func (w *MonitorWorker) checkMonitorsByInterval(ctx context.Context, interval int32) {
 	// Use handler's store to get monitors
-	monitors, err := w.handler.GetStore().GetMonitorsByInterval(ctx, interval) // ✅ Use handler's store
+	monitors, err := w.monitorHandler.GetStore().GetMonitorsByInterval(ctx, interval) // ✅ Use handler's store
 	if err != nil {
 		log.Printf("❌ Failed to get active monitors: %v", err)
 		return
@@ -57,10 +63,13 @@ func (w *MonitorWorker) checkMonitorsByInterval(ctx context.Context, interval in
 
 	for _, monitor := range monitors {
 		go func(m db.Monitor) {
-			result, err := w.handler.PerformMonitorCheck(ctx, m)
+			result, err := w.monitorHandler.PerformMonitorCheck(ctx, m)
 			if err != nil {
 				log.Printf("❌ Failed to check monitor %d (%s): %v", m.ID, m.Url, err)
 				return
+			}
+			if err := w.alertHandler.CheckAndSendAlerts(ctx, m, result); err != nil {
+				log.Printf("Error sending alerts for %d: %v", m.ID, err)
 			}
 			log.Printf("✅ %s: %s (%dms)", result.Url, result.Status, int(result.ResponseTime))
 		}(monitor)

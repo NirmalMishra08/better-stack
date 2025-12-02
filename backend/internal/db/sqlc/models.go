@@ -256,16 +256,18 @@ type Analytic struct {
 }
 
 type Monitor struct {
-	ID        int32             `json:"id"`
-	UserID    pgtype.UUID       `json:"user_id"`
-	Url       string            `json:"url"`
-	Method    pgtype.Text       `json:"method"`
-	Type      pgtype.Text       `json:"type"`
-	Interval  int32             `json:"interval"`
-	Status    NullMonitorStatus `json:"status"`
-	IsActive  pgtype.Bool       `json:"is_active"`
-	CreatedAt pgtype.Timestamp  `json:"created_at"`
-	UpdatedAt pgtype.Timestamp  `json:"updated_at"`
+	ID              int32             `json:"id"`
+	UserID          pgtype.UUID       `json:"user_id"`
+	Url             string            `json:"url"`
+	Method          pgtype.Text       `json:"method"`
+	Type            pgtype.Text       `json:"type"`
+	Interval        int32             `json:"interval"`
+	Status          NullMonitorStatus `json:"status"`
+	LastStatus      NullMonitorStatus `json:"last_status"`
+	LastAlertSentAt pgtype.Timestamp  `json:"last_alert_sent_at"`
+	IsActive        pgtype.Bool       `json:"is_active"`
+	CreatedAt       pgtype.Timestamp  `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp  `json:"updated_at"`
 }
 
 type MonitorAlertConfig struct {

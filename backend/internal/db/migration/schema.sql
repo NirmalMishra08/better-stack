@@ -56,10 +56,13 @@ CREATE TABLE monitors (
     type TEXT DEFAULT 'http',
     interval INTEGER NOT NULL,
     status monitor_status DEFAULT 'unknown',
+    last_status monitor_status DEFAULT 'unknown',
+    last_alert_sent_at TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE monitor_logs (
     id SERIAL PRIMARY KEY,

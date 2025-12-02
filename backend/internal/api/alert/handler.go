@@ -34,8 +34,6 @@ func (h *Handler) Routes() *chi.Mux {
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.TokenMiddleware(h.store))
 
-		
-
 	})
 
 	return router

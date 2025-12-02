@@ -50,6 +50,7 @@ type Querier interface {
 	ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (Monitor, error)
 	UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (Monitor, error)
 	UpdateMonitorAlertConfig(ctx context.Context, arg UpdateMonitorAlertConfigParams) (MonitorAlertConfig, error)
+	UpdateMonitorAlertState(ctx context.Context, arg UpdateMonitorAlertStateParams) error
 	UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStatusParams) (Monitor, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
