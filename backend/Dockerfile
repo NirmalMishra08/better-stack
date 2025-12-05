@@ -21,7 +21,7 @@ RUN find . -name "main.go" -type f | head -1
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
 # Final stage
-FROM alpine:latest
+FROM --platform=linux/amd64 alpine:latest
 
 # Install necessary packages
 RUN apk --no-cache add ca-certificates tzdata wget && \
