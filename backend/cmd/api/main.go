@@ -4,7 +4,6 @@ import (
 	"better-uptime/common/cloudinary"
 	"better-uptime/config"
 	"better-uptime/internal/api"
-	"better-uptime/internal/api/worker"
 	db "better-uptime/internal/db/sqlc"
 	"context"
 	"fmt"
@@ -12,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
