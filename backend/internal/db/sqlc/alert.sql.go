@@ -14,13 +14,13 @@ import (
 const createAlert = `-- name: CreateAlert :one
 INSERT INTO alerts (monitor_id, alert_type, message)
 VALUES ($1, $2, $3)
-RETURNING id, monitor_id, alert_type, message, sent_at, created_at
+RETURNING id, monitor_id, alert_contact_id, alert_type, message, sent_at, created_at
 `
 
 type CreateAlertParams struct {
 	MonitorID pgtype.Int4 `json:"monitor_id"`
-	AlertType pgtype.Text `json:"alert_type"`
-	Message   pgtype.Text `json:"message"`
+	AlertType string      `json:"alert_type"`
+	Message   string      `json:"message"`
 }
 
 func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert, error) {
@@ -29,6 +29,7 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 	err := row.Scan(
 		&i.ID,
 		&i.MonitorID,
+		&i.AlertContactID,
 		&i.AlertType,
 		&i.Message,
 		&i.SentAt,
@@ -38,7 +39,7 @@ func (q *Queries) CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert
 }
 
 const getMonitorAlerts = `-- name: GetMonitorAlerts :many
-SELECT id, monitor_id, alert_type, message, sent_at, created_at FROM alerts 
+SELECT id, monitor_id, alert_contact_id, alert_type, message, sent_at, created_at FROM alerts 
 WHERE monitor_id = $1 
 ORDER BY sent_at DESC 
 LIMIT $2
@@ -61,6 +62,7 @@ func (q *Queries) GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsPara
 		if err := rows.Scan(
 			&i.ID,
 			&i.MonitorID,
+			&i.AlertContactID,
 			&i.AlertType,
 			&i.Message,
 			&i.SentAt,
@@ -77,7 +79,7 @@ func (q *Queries) GetMonitorAlerts(ctx context.Context, arg GetMonitorAlertsPara
 }
 
 const getRecentAlerts = `-- name: GetRecentAlerts :many
-SELECT a.id, a.monitor_id, a.alert_type, a.message, a.sent_at, a.created_at, m.url, m.user_id
+SELECT a.id, a.monitor_id, a.alert_contact_id, a.alert_type, a.message, a.sent_at, a.created_at, m.url, m.user_id
 FROM alerts a
 JOIN monitors m ON a.monitor_id = m.id
 WHERE m.user_id = $1
@@ -91,14 +93,15 @@ type GetRecentAlertsParams struct {
 }
 
 type GetRecentAlertsRow struct {
-	ID        int32            `json:"id"`
-	MonitorID pgtype.Int4      `json:"monitor_id"`
-	AlertType pgtype.Text      `json:"alert_type"`
-	Message   pgtype.Text      `json:"message"`
-	SentAt    pgtype.Timestamp `json:"sent_at"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	Url       string           `json:"url"`
-	UserID    pgtype.UUID      `json:"user_id"`
+	ID             int32            `json:"id"`
+	MonitorID      pgtype.Int4      `json:"monitor_id"`
+	AlertContactID pgtype.Int4      `json:"alert_contact_id"`
+	AlertType      string           `json:"alert_type"`
+	Message        string           `json:"message"`
+	SentAt         pgtype.Timestamp `json:"sent_at"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	Url            string           `json:"url"`
+	UserID         pgtype.UUID      `json:"user_id"`
 }
 
 func (q *Queries) GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams) ([]GetRecentAlertsRow, error) {
@@ -113,12 +116,62 @@ func (q *Queries) GetRecentAlerts(ctx context.Context, arg GetRecentAlertsParams
 		if err := rows.Scan(
 			&i.ID,
 			&i.MonitorID,
+			&i.AlertContactID,
 			&i.AlertType,
 			&i.Message,
 			&i.SentAt,
 			&i.CreatedAt,
 			&i.Url,
 			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRecentAlertsForContact = `-- name: GetRecentAlertsForContact :many
+SELECT id, monitor_id, alert_contact_id, alert_type, message, sent_at, created_at FROM alerts 
+WHERE monitor_id = $1 
+  AND alert_contact_id = $2
+  AND alert_type = $3
+  AND sent_at > $4
+ORDER BY sent_at DESC
+`
+
+type GetRecentAlertsForContactParams struct {
+	MonitorID      pgtype.Int4      `json:"monitor_id"`
+	AlertContactID pgtype.Int4      `json:"alert_contact_id"`
+	AlertType      string           `json:"alert_type"`
+	SentAt         pgtype.Timestamp `json:"sent_at"`
+}
+
+func (q *Queries) GetRecentAlertsForContact(ctx context.Context, arg GetRecentAlertsForContactParams) ([]Alert, error) {
+	rows, err := q.db.Query(ctx, getRecentAlertsForContact,
+		arg.MonitorID,
+		arg.AlertContactID,
+		arg.AlertType,
+		arg.SentAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Alert{}
+	for rows.Next() {
+		var i Alert
+		if err := rows.Scan(
+			&i.ID,
+			&i.MonitorID,
+			&i.AlertContactID,
+			&i.AlertType,
+			&i.Message,
+			&i.SentAt,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -228,12 +228,22 @@ func (ns NullUserStatus) Value() (driver.Value, error) {
 }
 
 type Alert struct {
-	ID        int32            `json:"id"`
-	MonitorID pgtype.Int4      `json:"monitor_id"`
-	AlertType pgtype.Text      `json:"alert_type"`
-	Message   pgtype.Text      `json:"message"`
-	SentAt    pgtype.Timestamp `json:"sent_at"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID             int32            `json:"id"`
+	MonitorID      pgtype.Int4      `json:"monitor_id"`
+	AlertContactID pgtype.Int4      `json:"alert_contact_id"`
+	AlertType      string           `json:"alert_type"`
+	Message        string           `json:"message"`
+	SentAt         pgtype.Timestamp `json:"sent_at"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+}
+
+type AlertContact struct {
+	ID         int32            `json:"id"`
+	UserID     pgtype.UUID      `json:"user_id"`
+	Name       string           `json:"name"`
+	Email      string           `json:"email"`
+	IsVerified pgtype.Bool      `json:"is_verified"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
 type Analytic struct {
@@ -246,16 +256,30 @@ type Analytic struct {
 }
 
 type Monitor struct {
-	ID        int32             `json:"id"`
-	UserID    pgtype.UUID       `json:"user_id"`
-	Url       string            `json:"url"`
-	Method    pgtype.Text       `json:"method"`
-	Type      pgtype.Text       `json:"type"`
-	Interval  int32             `json:"interval"`
-	Status    NullMonitorStatus `json:"status"`
-	IsActive  pgtype.Bool       `json:"is_active"`
-	CreatedAt pgtype.Timestamp  `json:"created_at"`
-	UpdatedAt pgtype.Timestamp  `json:"updated_at"`
+	ID              int32             `json:"id"`
+	UserID          pgtype.UUID       `json:"user_id"`
+	Url             string            `json:"url"`
+	Method          pgtype.Text       `json:"method"`
+	Type            pgtype.Text       `json:"type"`
+	Interval        int32             `json:"interval"`
+	Status          NullMonitorStatus `json:"status"`
+	LastStatus      NullMonitorStatus `json:"last_status"`
+	LastAlertSentAt pgtype.Timestamp  `json:"last_alert_sent_at"`
+	IsActive        pgtype.Bool       `json:"is_active"`
+	CreatedAt       pgtype.Timestamp  `json:"created_at"`
+	UpdatedAt       pgtype.Timestamp  `json:"updated_at"`
+}
+
+type MonitorAlertConfig struct {
+	ID              int32            `json:"id"`
+	MonitorID       pgtype.Int4      `json:"monitor_id"`
+	AlertContactID  pgtype.Int4      `json:"alert_contact_id"`
+	AlertOnUp       pgtype.Bool      `json:"alert_on_up"`
+	AlertOnDown     pgtype.Bool      `json:"alert_on_down"`
+	AlertOnSlow     pgtype.Bool      `json:"alert_on_slow"`
+	SlowThresholdMs pgtype.Int4      `json:"slow_threshold_ms"`
+	IsActive        pgtype.Bool      `json:"is_active"`
+	CreatedAt       pgtype.Timestamp `json:"created_at"`
 }
 
 type MonitorLog struct {

@@ -42,6 +42,14 @@ SET status = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
+-- name: UpdateMonitorAlertState :exec
+UPDATE monitors
+SET 
+    last_status = $2,
+    last_alert_sent_at = $3,
+    updated_at = NOW()
+WHERE id = $1;
+
 
 -- name: GetActiveMonitors :many
 SELECT * FROM monitors 

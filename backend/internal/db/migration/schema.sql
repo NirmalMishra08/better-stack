@@ -56,10 +56,13 @@ CREATE TABLE monitors (
     type TEXT DEFAULT 'http',
     interval INTEGER NOT NULL,
     status monitor_status DEFAULT 'unknown',
+    last_status monitor_status DEFAULT 'unknown',
+    last_alert_sent_at TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE monitor_logs (
     id SERIAL PRIMARY KEY,
@@ -73,16 +76,39 @@ CREATE TABLE monitor_logs (
     checked_at TIMESTAMP DEFAULT now()
 );
 
-
-CREATE TABLE alerts(
+CREATE TABLE alert_contacts (
     id SERIAL PRIMARY KEY,
-    monitor_id INTEGER REFERENCES monitors(id),
-    alert_type TEXT,
-    message TEXT,
-    sent_at TIMESTAMP DEFAULT now(),
-    created_at TIMESTAMP DEFAULT now()
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE monitor_alert_configs (
+    id SERIAL PRIMARY KEY,
+    monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
+    alert_contact_id INTEGER REFERENCES alert_contacts(id) ON DELETE CASCADE,
+    alert_on_up BOOLEAN DEFAULT FALSE,
+    alert_on_down BOOLEAN DEFAULT TRUE,
+    alert_on_slow BOOLEAN DEFAULT FALSE,
+    slow_threshold_ms INTEGER DEFAULT 5000,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(monitor_id, alert_contact_id)
+);
+
+
+
+CREATE TABLE alerts (
+    id SERIAL PRIMARY KEY,
+    monitor_id INTEGER REFERENCES monitors(id) ON DELETE CASCADE,
+    alert_contact_id INTEGER REFERENCES alert_contacts(id) ON DELETE CASCADE,
+    alert_type TEXT NOT NULL, -- 'up', 'down', 'ssl_expiry', 'slow'
+    message TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
 CREATE TABLE subscriptions(
     id SERIAL PRIMARY KEY,
