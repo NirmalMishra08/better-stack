@@ -44,11 +44,13 @@ func (h *Handler) Routes() *chi.Mux {
 		r.Use(middleware.TokenMiddleware(h.store))
 		r.Post("/create-monitor", h.CreateMonitor)
 		r.Get("/get-monitor/{id}", h.GetMonitorByID)
-		r.Get("/monitor-status/{id}", h.GetMonitorStatus)
+		r.Get("/monitors/{id}/metrics", h.GetMonitorStatus)
 		r.Post("/toggle-monitor", h.ToggleMonitor)
 		r.Delete("/delete-monitor/{id}", h.DeleteMonitor)
 		r.Get("/get-active-monitors", h.GetAllActiveMonitors)
 		r.Get("/get-all-monitors", h.GetAllMonitors)
+		r.Get("/monitor/{id}/logs",h.GetMonitorLogs) // this route is only for pagination
+		
 
 	})
 

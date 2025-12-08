@@ -5,11 +5,6 @@ INSERT INTO monitor_logs (
 ) VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
--- name: GetMonitorLogs :many
-SELECT * FROM monitor_logs 
-WHERE monitor_id = $1 
-ORDER BY checked_at DESC 
-LIMIT $2;
 
 -- name: GetMonitorLogsByTimeRange :many
 SELECT * FROM monitor_logs 
@@ -23,3 +18,19 @@ FROM monitor_logs
 WHERE monitor_id = $1 
 ORDER BY checked_at DESC 
 LIMIT 1;
+
+-- name: GetMonitorLogs :many
+SELECT id , monitor_id,status_code,response_time,dns_ok,ssl_ok,content_ok,screenshot_url,checked_at
+FROM monitor_logs
+WHERE monitor_id = $1
+   AND ( $2::TIMESTAMP IS NULL OR checked_at >= $2)
+   AND ($3::timestamp IS NULL OR checked_at <= $3)
+ORDER BY checked_at DESC
+LIMIT $4 OFFSET $5;
+
+-- name: CountMonitorLogs :many  
+SELECT COUNT(*)
+FROM monitor_logs
+WHERE monitor_id = $1
+ AND ( $2::TIMESTAMP IS NULL OR checked_at >= $2)
+   AND ($3::timestamp IS NULL OR checked_at <= $3);
