@@ -13,6 +13,7 @@ import (
 
 type Querier interface {
 	CalculateUptimePercentage(ctx context.Context, arg CalculateUptimePercentageParams) (CalculateUptimePercentageRow, error)
+	CountMonitorLogs(ctx context.Context, arg CountMonitorLogsParams) ([]int64, error)
 	CreateAlert(ctx context.Context, arg CreateAlertParams) (Alert, error)
 	CreateAlertContact(ctx context.Context, arg CreateAlertContactParams) (AlertContact, error)
 	CreateMonitor(ctx context.Context, arg CreateMonitorParams) (Monitor, error)

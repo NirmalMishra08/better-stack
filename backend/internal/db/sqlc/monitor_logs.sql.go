@@ -11,6 +11,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countMonitorLogs = `-- name: CountMonitorLogs :many
+SELECT COUNT(*)
+FROM monitor_logs
+WHERE monitor_id = $1
+ AND ( $2::TIMESTAMP IS NULL OR checked_at >= $2)
+   AND ($3::timestamp IS NULL OR checked_at <= $3)
+`
+
+type CountMonitorLogsParams struct {
+	MonitorID pgtype.Int4      `json:"monitor_id"`
+	Column2   pgtype.Timestamp `json:"column_2"`
+	Column3   pgtype.Timestamp `json:"column_3"`
+}
+
+func (q *Queries) CountMonitorLogs(ctx context.Context, arg CountMonitorLogsParams) ([]int64, error) {
+	rows, err := q.db.Query(ctx, countMonitorLogs, arg.MonitorID, arg.Column2, arg.Column3)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []int64{}
+	for rows.Next() {
+		var count int64
+		if err := rows.Scan(&count); err != nil {
+			return nil, err
+		}
+		items = append(items, count)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createMonitorLog = `-- name: CreateMonitorLog :one
 INSERT INTO monitor_logs (
     monitor_id, status_code, response_time, 
@@ -55,19 +89,31 @@ func (q *Queries) CreateMonitorLog(ctx context.Context, arg CreateMonitorLogPara
 }
 
 const getMonitorLogs = `-- name: GetMonitorLogs :many
-SELECT id, monitor_id, status_code, response_time, dns_ok, ssl_ok, content_ok, screenshot_url, checked_at FROM monitor_logs 
-WHERE monitor_id = $1 
-ORDER BY checked_at DESC 
-LIMIT $2
+SELECT id , monitor_id,status_code,response_time,dns_ok,ssl_ok,content_ok,screenshot_url,checked_at
+FROM monitor_logs
+WHERE monitor_id = $1
+   AND ( $2::TIMESTAMP IS NULL OR checked_at >= $2)
+   AND ($3::timestamp IS NULL OR checked_at <= $3)
+ORDER BY checked_at DESC
+LIMIT $4 OFFSET $5
 `
 
 type GetMonitorLogsParams struct {
-	MonitorID pgtype.Int4 `json:"monitor_id"`
-	Limit     int32       `json:"limit"`
+	MonitorID pgtype.Int4      `json:"monitor_id"`
+	Column2   pgtype.Timestamp `json:"column_2"`
+	Column3   pgtype.Timestamp `json:"column_3"`
+	Limit     int32            `json:"limit"`
+	Offset    int32            `json:"offset"`
 }
 
 func (q *Queries) GetMonitorLogs(ctx context.Context, arg GetMonitorLogsParams) ([]MonitorLog, error) {
-	rows, err := q.db.Query(ctx, getMonitorLogs, arg.MonitorID, arg.Limit)
+	rows, err := q.db.Query(ctx, getMonitorLogs,
+		arg.MonitorID,
+		arg.Column2,
+		arg.Column3,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
