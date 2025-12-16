@@ -21,11 +21,10 @@ RUN find . -name "main.go" -type f | head -1
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
 # Final stage
-FROM --platform=linux/amd64 alpine:latest
+FROM alpine:3.19
 
 # Install necessary packages
-RUN apk --no-cache add ca-certificates tzdata wget && \
-    update-ca-certificates
+RUN apk add --no-cache ca-certificates tzdata
 
 # Create non-root user
 RUN addgroup -S app && adduser -S app -G app

@@ -136,10 +136,10 @@ export default function Home() {
               <a href="#contact" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">Contact</a>
             </div>
             <div className="flex items-center space-x-4">
-              <a href="/dashboard" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">
-                Dashboard
+              <a href="/login" className="text-white/80 hover:text-white transition-all duration-300 hover:scale-105">
+                Sign In
               </a>
-              <a href="/dashboard" className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-6 py-2 rounded-full hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25">
+              <a href="/login" className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 text-white px-6 py-2 rounded-full hover:from-cyan-500 hover:via-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25">
                 Get Started
               </a>
             </div>

@@ -16,7 +16,7 @@ CREATE TYPE provider AS ENUM (
 
 CREATE TYPE user_role AS ENUM (
     'ADMIN',
-    'USER'
+    'USER',
 );
 
 CREATE TYPE profile_status AS ENUM (

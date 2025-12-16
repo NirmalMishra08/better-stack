@@ -8,15 +8,16 @@ import (
 )
 
 type Config struct {
-	PORT                  string
-	POSTGRES_CONNECTION   string
-	CLOUDINARY_CLOUD_NAME string
-	CLOUDINARY_API_KEY    string
-	CLOUDINARY_API_SECRET string
-	SCREENSHOTONE_KEY	  string
-	SCREENSHOTONE_SECRET  string
-	SMTP_EMAIL            string
-	SMTP_PASSWORD         string
+	PORT                      string
+	POSTGRES_CONNECTION       string
+	CLOUDINARY_CLOUD_NAME     string
+	CLOUDINARY_API_KEY        string
+	CLOUDINARY_API_SECRET      string
+	SCREENSHOTONE_KEY         string
+	SCREENSHOTONE_SECRET      string
+	SMTP_EMAIL                string
+	SMTP_PASSWORD             string
+	FIREBASE_SERVICE_ACCOUNT  string
 }
 
 func LoadConfig() *Config {
@@ -25,16 +26,16 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		PORT:                getEnv("PORT", "8080"),
-		POSTGRES_CONNECTION: getEnv("POSTGRES_CONNECTION", ""),
-		CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
-		CLOUDINARY_API_KEY:    getEnv("CLOUDINARY_API_KEY", ""),
-		CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
-		SCREENSHOTONE_KEY:     getEnv("SCREENSHOTONE_KEY", ""),
-		SCREENSHOTONE_SECRET:  getEnv("SCREENSHOTONE_SECRET", ""),
-		SMTP_EMAIL:            getEnv("SMTP_EMAIL", ""),
-		SMTP_PASSWORD:         getEnv("SMTP_PASSWORD", ""),
-
+		PORT:                     getEnv("PORT", "8080"),
+		POSTGRES_CONNECTION:     getEnv("POSTGRES_CONNECTION", ""),
+		CLOUDINARY_CLOUD_NAME:   getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CLOUDINARY_API_KEY:      getEnv("CLOUDINARY_API_KEY", ""),
+		CLOUDINARY_API_SECRET:   getEnv("CLOUDINARY_API_SECRET", ""),
+		SCREENSHOTONE_KEY:       getEnv("SCREENSHOTONE_KEY", ""),
+		SCREENSHOTONE_SECRET:    getEnv("SCREENSHOTONE_SECRET", ""),
+		SMTP_EMAIL:              getEnv("SMTP_EMAIL", ""),
+		SMTP_PASSWORD:           getEnv("SMTP_PASSWORD", ""),
+		FIREBASE_SERVICE_ACCOUNT: getEnv("FIREBASE_SERVICE_ACCOUNT", ""),
 	}
 }
 
