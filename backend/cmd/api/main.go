@@ -2,6 +2,7 @@ package main
 
 import (
 	"better-uptime/common/cloudinary"
+	"better-uptime/common/firebase"
 	"better-uptime/config"
 	"better-uptime/internal/api"
 	db "better-uptime/internal/db/sqlc"
@@ -29,6 +30,19 @@ func main() {
 		log.Fatalf("Cannot connect to DB: %v", err)
 	}
 	defer pool.Close()
+
+	// Initialize Firebase Auth
+	if cfg.FIREBASE_SERVICE_ACCOUNT != "" {
+		if err := firebase.InitFirebaseAuth(cfg.FIREBASE_SERVICE_ACCOUNT); err != nil {
+			log.Printf("Warning: Firebase Auth initialization failed: %v", err)
+			log.Println("⚠️  Firebase token verification will not work. Please set FIREBASE_SERVICE_ACCOUNT in .env")
+		} else {
+			fmt.Println("✅ Firebase Auth initialized successfully")
+		}
+	} else {
+		log.Println("⚠️  FIREBASE_SERVICE_ACCOUNT not set. Firebase token verification will not work.")
+		log.Println("   Set FIREBASE_SERVICE_ACCOUNT in .env to enable Firebase authentication")
+	}
 
 	// Initialize Cloudinary
 	cloudinaryUploader, err := cloudinary.NewImageUploader(

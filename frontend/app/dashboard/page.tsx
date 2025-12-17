@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Monitor,
     Activity,
@@ -34,10 +34,21 @@ import {
 import NewMonitorButton from './_component/NewMonitorButton';
 import { useRouter } from 'next/navigation';
 import Sidebar from '../components/sidebar';
+import { isAuthenticated } from '@/lib/auth';
 
 export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('overview');
     const router = useRouter();
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const authenticated = await isAuthenticated();
+            if (!authenticated) {
+                router.push('/login');
+            }
+        };
+        checkAuth();
+    }, [router]);
 
     const monitoringData = [
         {
@@ -119,7 +130,7 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-slate-900 text-white">
             {/* Sidebar */}
-           <Sidebar/>
+            <Sidebar />
 
             {/* Main Content */}
             <div className="ml-64">
@@ -141,7 +152,7 @@ export default function Dashboard() {
                                 />
                             </div>
 
-                            <NewMonitorButton/>
+                            <NewMonitorButton />
 
                             <button className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
                                 <Bell className="w-5 h-5" />
@@ -294,14 +305,14 @@ export default function Dashboard() {
                                 <div key={alert.id} className="p-6 hover:bg-slate-750 transition-colors">
                                     <div className="flex items-center space-x-4">
                                         <div className={`w-2 h-2 rounded-full ${alert.severity === 'high' ? 'bg-red-400' :
-                                                alert.severity === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
+                                            alert.severity === 'medium' ? 'bg-yellow-400' : 'bg-green-400'
                                             }`}></div>
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2">
                                                 <span className="font-medium text-white">{alert.monitor}</span>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${alert.type === 'down' ? 'bg-red-900 text-red-300' :
-                                                        alert.type === 'slow' ? 'bg-yellow-900 text-yellow-300' :
-                                                            'bg-green-900 text-green-300'
+                                                    alert.type === 'slow' ? 'bg-yellow-900 text-yellow-300' :
+                                                        'bg-green-900 text-green-300'
                                                     }`}>
                                                     {alert.type.toUpperCase()}
                                                 </span>

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -45,10 +46,16 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		payload, err = firebase.VerifyFirebaseIDToken(ctx, idToken)
 		if err != nil {
-			util.ErrorJson(w, err)
+			logger.Error("Firebase token verification failed: %v", err)
+			if err.Error() == "firebase auth client not initialized" {
+				util.ErrorJson(w, fmt.Errorf("authentication service not configured. Please contact administrator"))
+			} else {
+				util.ErrorJson(w, fmt.Errorf("invalid or expired token: %v", err))
+			}
 			return
 		}
 		userID = uuid.Nil
+		logger.Info("Firebase token verified successfully for email: %s", payload.Email)
 	}
 
 	var req authRequest

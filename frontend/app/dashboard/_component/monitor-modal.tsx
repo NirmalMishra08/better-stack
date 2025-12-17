@@ -1,7 +1,7 @@
 import { useState } from "react";
-import axios from "axios";
 import toast from "react-hot-toast";
 import { Dialog } from "@headlessui/react";
+import { monitorAPI } from "@/lib/api";
 
 interface CreateMonitorModalProps {
   isOpen: boolean;
@@ -29,16 +29,29 @@ export default function CreateMonitorModal({ isOpen, onClose }: CreateMonitorMod
     setLoading(true);
 
     try {
-      const res = await axios.post("/api/monitors", form, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust based on your auth setup
-        },
+      console.log(form)
+      const response = await monitorAPI.createMonitor({
+        url: form.url,
+        method: form.method,
+        type: form.type,
+        interval: form.interval,
+        is_active: form.is_active,
       });
 
-      toast.success(res.data.message || "Monitor created!");
+      console.log(response)
+
+      toast.success(response.message || "Monitor created!");
       onClose();
+      // Reset form
+      setForm({
+        url: "",
+        method: "GET",
+        type: "HTTP",
+        interval: 60,
+        is_active: true,
+      });
     } catch (error: any) {
-      const msg = error.response?.data?.error || "Failed to create monitor";
+      const msg = error.response?.data?.error || error.message || "Failed to create monitor";
       toast.error(msg);
     } finally {
       setLoading(false);
