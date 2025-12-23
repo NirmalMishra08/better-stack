@@ -34,14 +34,17 @@ func main() {
 	// Initialize Firebase Auth
 	if cfg.FIREBASE_SERVICE_ACCOUNT != "" {
 		if err := firebase.InitFirebaseAuth(cfg.FIREBASE_SERVICE_ACCOUNT); err != nil {
-			log.Printf("Warning: Firebase Auth initialization failed: %v", err)
-			log.Println("⚠️  Firebase token verification will not work. Please set FIREBASE_SERVICE_ACCOUNT in .env")
+			log.Printf("⚠️  Warning: Firebase Auth initialization failed: %v", err)
+			log.Println("   Firebase token verification will not work. Real Firebase tokens will be rejected.")
+			log.Println("   The bypass token 'frontend' will still work for testing.")
 		} else {
 			fmt.Println("✅ Firebase Auth initialized successfully")
 		}
 	} else {
-		log.Println("⚠️  FIREBASE_SERVICE_ACCOUNT not set. Firebase token verification will not work.")
-		log.Println("   Set FIREBASE_SERVICE_ACCOUNT in .env to enable Firebase authentication")
+		log.Println("⚠️  FIREBASE_SERVICE_ACCOUNT not set in .env")
+		log.Println("   Firebase token verification is disabled.")
+		log.Println("   Only the bypass token 'frontend' will work for testing.")
+		log.Println("   To enable Firebase: Set FIREBASE_SERVICE_ACCOUNT=./firebase-service-account.json in your .env file")
 	}
 
 	// Initialize Cloudinary
@@ -74,6 +77,7 @@ func main() {
 	server := api.NewServer(store, cfg, cloudinaryUploader)
 
 	// Channel for graceful shutdown
+	// SIGINT = Ctrl+C, SIGTERM = Termination request (like from Docker/K8s)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 

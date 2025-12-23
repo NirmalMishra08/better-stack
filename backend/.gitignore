@@ -29,6 +29,11 @@ go.work.sum
 # env file
 .env
 
+# Firebase service account (contains sensitive credentials)
+firebase-service-account.json
+**/firebase-service-account.json
+*-service-account.json
+
 # Editor/IDE
 # .idea/
 # .vscode/
