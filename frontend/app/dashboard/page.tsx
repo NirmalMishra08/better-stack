@@ -40,15 +40,15 @@ export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('overview');
     const router = useRouter();
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const authenticated = await isAuthenticated();
-            if (!authenticated) {
-                router.push('/login');
-            }
-        };
-        checkAuth();
-    }, [router]);
+    // useEffect(() => {
+    //     const checkAuth = async () => {
+    //         const authenticated = await isAuthenticated();
+    //         if (!authenticated) {
+    //             router.push('/login');
+    //         }
+    //     };
+    //     checkAuth();
+    // }, [router]);
 
     const monitoringData = [
         {
