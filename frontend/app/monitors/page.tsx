@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import {
     Monitor,
     Plus,
@@ -23,10 +24,24 @@ import {
     Bell,
     Download
 } from 'lucide-react';
+import { useUser } from '../hooks/useUser';
+import LogoutModal from "@/app/dashboard/_component/logout-modal"
+
+
+type User = {
+    photoURL: string
+}
 
 export default function MonitorsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [isModalOpen, setModalOpen] = useState(false);
+
+    const { data: user, isLoading } = useUser();
+
+    if (isLoading) return <span>...</span>;
+
+    console.log(user)
 
     const monitors = [
         {
@@ -129,12 +144,17 @@ export default function MonitorsPage() {
         return matchesSearch && matchesFilter;
     });
 
+    const handleLogout = () => {
+        console.log("Logging out...");
+        setModalOpen(false);
+    }
+
     return (
         <div className="min-h-screen bg-slate-900 text-white">
             {/* Sidebar */}
             <div className="fixed inset-y-0 left-0 w-64 bg-slate-800 border-r border-slate-700 z-50">
-                <div className="p-6">
-                    <div className="flex items-center space-x-3 mb-8">
+                <div className="p-6 flex flex-col h-full">
+                    <div className="flex  items-center space-x-3 mb-8">
                         <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-lg flex items-center justify-center">
                             <Monitor className="w-5 h-5 text-white" />
                         </div>
@@ -163,6 +183,38 @@ export default function MonitorsPage() {
                             <span>Settings</span>
                         </a>
                     </nav>
+
+                    <div className="flex-grow" />
+
+                    <div className="pt-6 border-t border-slate-700">
+                        <div className="flex items-center gap-3">
+                            <LogoutModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onLogout={handleLogout} />
+                            {/* Avatar Container */}
+                            <div onClick={() => setModalOpen(true)} className="relative flex h-10 w-10  shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-white font-semibold">
+
+                                {user?.photoURL ? (<>
+                                    <Image
+                                        src={user.photoURL}
+                                        alt={user.displayName || "User"}
+                                        fill
+                                        className="aspect-square object-cover"
+                                    />
+                                    <h3 className='text-white'> Hi {user?.email}</h3>
+                                </>
+                                ) : (
+                                    <span>{user?.displayName}</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <h3 className="text-sm font-medium text-white truncate">
+                                    Hi, {user?.displayName?.split(" ")[0] || "User"}
+                                </h3>
+                                <p className="text-xs text-slate-400 truncate">
+                                    {user?.email}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

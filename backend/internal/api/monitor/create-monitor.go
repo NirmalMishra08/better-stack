@@ -25,6 +25,7 @@ func (h *Handler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userId := payload.UserId
+	fmt.Printf("userId: %v\n", userId)
 
 	var req CreateMonitorRequest
 	if err := util.ReadJsonAndValidate(w, r, &req); err != nil {

@@ -59,15 +59,30 @@ export default function LoginPage() {
       // Get Firebase ID token
       const firebaseToken = await userCredential.user.getIdToken();
 
-      // Login with backend
-      await loginWithBackend(firebaseToken, {
-        email: userCredential.user.email || email,
-        full_name: fullName || userCredential.user.displayName || '',
-        provider: 'password',
-      });
+      console.log('Firebase authentication successful, user:', userCredential.user.email);
+      console.log('Firebase token obtained, length:', firebaseToken.length);
 
-      toast.success(isLogin ? 'Logged in successfully!' : 'Account created successfully!');
-      router.push('/dashboard');
+      // Login with backend
+      try {
+        await loginWithBackend(firebaseToken, {
+          email: userCredential.user.email || email,
+          full_name: fullName || userCredential.user.displayName || '',
+          provider: 'password',
+        });
+        toast.success(isLogin ? 'Logged in successfully!' : 'Account created successfully!');
+        router.push('/dashboard');
+      } catch (backendError: any) {
+        // If backend fails but Firebase worked, show specific error
+        console.error('Backend login failed:', backendError);
+        if (backendError.message?.includes('firebase auth client not initialized') ||
+          backendError.message?.includes('authentication service not configured')) {
+          toast.error('Backend authentication service is not configured. Using test mode.');
+          // Still redirect to dashboard as Firebase auth succeeded
+          router.push('/dashboard');
+        } else {
+          throw backendError; // Re-throw to be caught by outer catch
+        }
+      }
     } catch (error: any) {
       console.error('Auth error:', error);
       let errorMessage = 'An error occurred';
@@ -86,11 +101,25 @@ export default function LoginPage() {
         errorMessage = 'Network error. Please check your connection.';
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email/Password authentication is not enabled. Please contact support.';
+      } else if (error.code === 'auth/invalid-api-key') {
+        errorMessage = 'Invalid Firebase configuration. Please contact support.';
+      } else if (error.code === 'auth/app-not-authorized') {
+        errorMessage = 'Firebase app is not authorized. Please check Firebase Console settings.';
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
+
+      // Log full error for debugging
+      console.error('Full error object:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data,
+      });
 
       toast.error(errorMessage);
     } finally {

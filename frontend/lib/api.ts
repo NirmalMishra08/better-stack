@@ -19,6 +19,7 @@ apiClient.interceptors.request.use(
     try {
       const { getFirebaseToken } = await import('./auth');
       const token = await getFirebaseToken();
+      console.log('Firebase token:', token);
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -172,7 +173,7 @@ export const authAPI = {
   login: async (token: string, userData?: AuthRequest): Promise<AuthResponse> => {
     try {
       console.log('Calling backend login endpoint:', `${API_BASE_URL}${API_VERSION}/auth/login`);
-      console.log(token)
+      console.log('Using Firebase token:', token ? 'Token present' : 'No token');
       const response = await apiClient.post('/auth/login', userData || {}, {
         headers: {
           Authorization: `Bearer ${token}`,

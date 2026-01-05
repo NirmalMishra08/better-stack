@@ -54,7 +54,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		userID = uuid.Nil
+		userID = payload.UserId
+		logger.Info("Firebase userId: %s", userID)
 		logger.Info("Firebase token verified successfully for email: %s", payload.Email)
 	}
 
@@ -92,7 +93,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Phone:        pgtype.Text{String: phone, Valid: phone != ""},
 		Fullname:     req.FullName,
 		PasswordHash: pgtype.Text{String: hashedPassword, Valid: hashedPassword != ""},
-		Column6: userID,
 	})
 
 	if err != nil {

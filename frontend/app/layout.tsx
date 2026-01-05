@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Providers from "@/lib/provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +19,8 @@ export const metadata: Metadata = {
   description: "Professional website monitoring, uptime tracking, and instant alerting. Keep your services running 24/7 with our advanced monitoring platform.",
 };
 
+const queryClient = new QueryClient();
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,10 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <Providers>
+          {children}
+        </Providers>
+
       </body>
-    </html>
+    </html >
   );
 }

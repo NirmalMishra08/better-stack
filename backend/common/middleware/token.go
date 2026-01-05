@@ -30,6 +30,8 @@ func TokenMiddleware(store db.Store) func(http.Handler) http.Handler {
 				return
 			}
 
+			logrus.Info("Authorization header:", authHeader)
+
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
 				util.ErrorJson(w, util.ErrInvalidToken)
