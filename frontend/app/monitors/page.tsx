@@ -25,6 +25,7 @@ import {
     Download
 } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
+import LogoutModal from "@/app/dashboard/_component/logout-modal"
 
 
 type User = {
@@ -34,6 +35,7 @@ type User = {
 export default function MonitorsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [isModalOpen, setModalOpen] = useState(false);
 
     const { data: user, isLoading } = useUser();
 
@@ -142,6 +144,11 @@ export default function MonitorsPage() {
         return matchesSearch && matchesFilter;
     });
 
+    const handleLogout = () => {
+        console.log("Logging out...");
+        setModalOpen(false);
+    }
+
     return (
         <div className="min-h-screen bg-slate-900 text-white">
             {/* Sidebar */}
@@ -181,8 +188,10 @@ export default function MonitorsPage() {
 
                     <div className="pt-6 border-t border-slate-700">
                         <div className="flex items-center gap-3">
+                            <LogoutModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onLogout={handleLogout} />
                             {/* Avatar Container */}
-                            <div className="relative flex h-10 w-10  shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-white font-semibold">
+                            <div onClick={() => setModalOpen(true)} className="relative flex h-10 w-10  shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-white font-semibold">
+
                                 {user?.photoURL ? (<>
                                     <Image
                                         src={user.photoURL}
