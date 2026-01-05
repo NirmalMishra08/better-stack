@@ -20,7 +20,7 @@ WHERE id = $1;
 
 -- name: FindOrCreateUser :one
 INSERT INTO users (id, email, provider, phone, fullname, password_hash, created_at, updated_at)
-VALUES (COALESCE($6, gen_random_uuid()), $1, $2, $3, $4, $5, NOW(), NOW())
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
 ON CONFLICT (email)
 DO UPDATE SET
     phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),

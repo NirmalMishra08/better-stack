@@ -41,7 +41,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 
 const findOrCreateUser = `-- name: FindOrCreateUser :one
 INSERT INTO users (id, email, provider, phone, fullname, password_hash, created_at, updated_at)
-VALUES (COALESCE($6, gen_random_uuid()), $1, $2, $3, $4, $5, NOW(), NOW())
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW())
 ON CONFLICT (email)
 DO UPDATE SET
     phone = COALESCE(NULLIF(EXCLUDED.phone, ''), users.phone),
@@ -58,7 +58,6 @@ type FindOrCreateUserParams struct {
 	Phone        pgtype.Text `json:"phone"`
 	Fullname     string      `json:"fullname"`
 	PasswordHash pgtype.Text `json:"password_hash"`
-	Column6      interface{} `json:"column_6"`
 }
 
 func (q *Queries) FindOrCreateUser(ctx context.Context, arg FindOrCreateUserParams) (User, error) {
@@ -68,7 +67,6 @@ func (q *Queries) FindOrCreateUser(ctx context.Context, arg FindOrCreateUserPara
 		arg.Phone,
 		arg.Fullname,
 		arg.PasswordHash,
-		arg.Column6,
 	)
 	var i User
 	err := row.Scan(
