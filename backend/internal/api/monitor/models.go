@@ -3,15 +3,13 @@ package monitor
 import "github.com/jackc/pgx/v5/pgtype"
 
 type CreateMonitorRequest struct {
-	Url      string      `json:"url"`
-	Method   pgtype.Text `json:"method"`
-	Type     pgtype.Text `json:"type"`
-	Interval int32       `json:"interval"`
-	Status   string      `json:"status"`
-	IsActive pgtype.Bool `json:"is_active"`
+	Url      string `json:"url"`
+	Method   string `json:"method"`
+	Type     string `json:"type"`
+	Interval int32  `json:"interval"`
+	Status   string `json:"status,omitempty"`
+	IsActive bool   `json:"is_active"`
 }
-
-
 
 type TestURLResponse struct {
 	Url          string  `json:"url"`
@@ -25,8 +23,8 @@ type TestURLResponse struct {
 
 type MonitorLogParamas struct {
 	MonitorID int32
-	From pgtype.Timestamp
-	To pgtype.Timestamp
-	Limit int32
-	Offset int32
+	From      pgtype.Timestamp
+	To        pgtype.Timestamp
+	Limit     int32
+	Offset    int32
 }

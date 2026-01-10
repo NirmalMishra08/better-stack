@@ -46,11 +46,11 @@ func (h *Handler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 	monitor, err := h.store.CreateMonitor(ctx, db.CreateMonitorParams{
 		UserID:   pgtype.UUID{Bytes: userId, Valid: true},
 		Url:      req.Url,
-		Method:   req.Method,
-		Type:     req.Type,
+		Method:   pgtype.Text{String: req.Method, Valid: true},
+		Type:     pgtype.Text{String: req.Type, Valid: true},
 		Interval: req.Interval,
 		Status:   db.NullMonitorStatus{MonitorStatus: db.MonitorStatus(req.Status), Valid: true},
-		IsActive: req.IsActive,
+		IsActive: util.ToPgBool(req.IsActive),
 	})
 	if err != nil {
 		util.ErrorJson(w, err)
