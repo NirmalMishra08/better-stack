@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
 import LogoutModal from "@/app/dashboard/_component/logout-modal"
+import Spinner from '../components/spinner';
+import { monitorAPI } from '@/lib/api';
 
 
 type User = {
@@ -39,7 +41,13 @@ export default function MonitorsPage() {
 
     const { data: user, isLoading } = useUser();
 
-    if (isLoading) return <span>...</span>;
+    if (isLoading) {
+        return (
+            <div className="bg-slate-900 text-white flex h-screen w-full items-center justify-center">
+                <Spinner />
+            </div>
+        );
+    }
 
     console.log(user)
 
@@ -49,6 +57,7 @@ export default function MonitorsPage() {
             name: 'Main Website',
             url: 'https://example.com',
             status: 'up',
+            is_active: "true",
             uptime: '99.9%',
             responseTime: '245ms',
             lastCheck: '2 minutes ago',
@@ -62,6 +71,7 @@ export default function MonitorsPage() {
             name: 'API Endpoint',
             url: 'https://api.example.com/health',
             status: 'down',
+            is_active: "true",
             uptime: '98.2%',
             responseTime: '1.2s',
             lastCheck: '5 minutes ago',
@@ -75,6 +85,7 @@ export default function MonitorsPage() {
             name: 'Database Connection',
             url: 'https://db.example.com',
             status: 'up',
+            is_active: "true",
             uptime: '99.8%',
             responseTime: '89ms',
             lastCheck: '1 minute ago',
@@ -88,6 +99,7 @@ export default function MonitorsPage() {
             name: 'CDN Status',
             url: 'https://cdn.example.com',
             status: 'up',
+            is_active: "true",
             uptime: '99.7%',
             responseTime: '156ms',
             lastCheck: '3 minutes ago',
@@ -147,6 +159,10 @@ export default function MonitorsPage() {
     const handleLogout = () => {
         console.log("Logging out...");
         setModalOpen(false);
+    }
+
+    const handleChangeActive = (id: number, currentStatus: boolean) => {
+        monitorAPI.toggleMonitor(Number(id), !currentStatus)
     }
 
     return (
@@ -349,7 +365,9 @@ export default function MonitorsPage() {
 
                                 <div className="mt-6 pt-4 border-t border-slate-700">
                                     <div className="flex items-center space-x-2">
-                                        <button className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
+                                        <button
+                                            onClick={() => handleChangeActive(monitor.id, monitor?.is_active === "true")}
+                                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
                                             <Play className="w-4 h-4" />
                                             <span>Pause</span>
                                         </button>

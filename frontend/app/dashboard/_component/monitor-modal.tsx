@@ -15,6 +15,7 @@ export default function CreateMonitorModal({ isOpen, onClose }: CreateMonitorMod
     type: "HTTP",
     interval: 60,
     is_active: true,
+
   });
   const [loading, setLoading] = useState(false);
 
@@ -34,8 +35,9 @@ export default function CreateMonitorModal({ isOpen, onClose }: CreateMonitorMod
         url: form.url,
         method: form.method,
         type: form.type,
-        interval: form.interval,
+        interval: Number(form.interval),
         is_active: form.is_active,
+        status: "up"
       });
 
       console.log(response)
