@@ -5,7 +5,6 @@ import (
 	"better-uptime/common/firebase"
 	"better-uptime/config"
 	"better-uptime/internal/api"
-	"better-uptime/internal/api/worker"
 	db "better-uptime/internal/db/sqlc"
 	"context"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -65,15 +63,15 @@ func main() {
 	store := db.NewStore(pool)
 
 	// ✅ ADD THIS: Start Monitor Worker
-	worker := worker.NewMonitorWorker(store, cfg)
+	// worker := worker.NewMonitorWorker(store, cfg)
 
 	// Create background context for the worker
-	workerCtx, cancelWorker := context.WithCancel(context.Background())
-	defer cancelWorker()
+	// workerCtx, cancelWorker := context.WithCancel(context.Background())
+	// defer cancelWorker()
 
-	// Start worker in background
-	go worker.Start(workerCtx)
-	fmt.Println("🚀 Monitor worker started - checking monitors every minute")
+	// // Start worker in background
+	// go worker.Start(workerCtx)
+	// fmt.Println("🚀 Monitor worker started - checking monitors every minute")
 
 	// Start server
 	server := api.NewServer(store, cfg, cloudinaryUploader)
@@ -84,7 +82,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	// ---      fake code for testing email sending -- testing purposes only
-	// err = email.SendStatusAlert("mishranrml@gmail.com", "example.com", true, "up", "200 ms")
+	// err = email.SendStatusAlert("mishranrml@gmail.com", "example.com",true, "up", "200 ms")
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
@@ -103,7 +101,7 @@ func main() {
 	fmt.Println("\n🛑 Shutting down server...")
 
 	// Stop the worker
-	cancelWorker()
+	// cancelWorker()
 	fmt.Println("✅ Monitor worker stopped")
 
 	fmt.Println("🎯 Application shutdown complete")
