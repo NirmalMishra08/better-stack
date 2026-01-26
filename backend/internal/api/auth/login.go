@@ -32,7 +32,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var payload firebase.FirebasePayload
 	var err error
-	var userID uuid.UUID
+	// var userID uuid.UUID
 	// For frontend testing bypass
 	if idToken == "frontend" {
 		payload = firebase.FirebasePayload{
@@ -42,7 +42,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			Phone:    "9876543210",
 			Provider: "password",
 		}
-		userID = payload.UserId
+		// userID = payload.UserId
 	} else {
 		payload, err = firebase.VerifyFirebaseIDToken(ctx, idToken)
 		if err != nil {
@@ -54,8 +54,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		userID = payload.UserId
-		logger.Info("Firebase userId: %s", userID)
+		// userID = uuid.Nil
 		logger.Info("Firebase token verified successfully for email: %s", payload.Email)
 	}
 

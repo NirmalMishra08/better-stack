@@ -57,7 +57,7 @@ func (h *Handler) CreateMonitor(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkResult, err := h.performMonitorCheck(ctx, monitor)
+	checkResult, err := h.PerformMonitorCheck(ctx,monitor)
 	if err != nil {
 		// Monitor created but check failed
 		response := CreateMonitorResponse{

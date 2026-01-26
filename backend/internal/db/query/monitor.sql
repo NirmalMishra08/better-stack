@@ -26,6 +26,7 @@ SET
 WHERE id = $1 AND user_id = $8
 RETURNING *;
 
+
 -- name: DeleteMonitor :exec
 DELETE FROM monitors 
 WHERE id = $1 AND user_id = $2;

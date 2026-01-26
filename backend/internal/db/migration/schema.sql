@@ -66,7 +66,7 @@ CREATE TABLE monitors (
 
 CREATE TABLE monitor_logs (
     id SERIAL PRIMARY KEY,
-    monitor_id INTEGER REFERENCES monitors(id),
+    monitor_id INTEGER REFERENCES monitors(id) on delete CASCADE,
     status_code INTEGER,
     response_time FLOAT,
     dns_ok BOOLEAN,

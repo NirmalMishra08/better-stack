@@ -5,7 +5,6 @@ import (
 	"better-uptime/common/routes"
 	"better-uptime/config"
 	db "better-uptime/internal/db/sqlc"
-	"context"
 	"go/token"
 
 	"github.com/go-chi/chi/v5"
@@ -33,10 +32,6 @@ func NewHandler(config *config.Config, store db.Store) *Handler {
 	}
 }
 
-func (h *Handler) PerformMonitorCheck(ctx context.Context, monitor db.Monitor) (*TestURLResponse, error) {
-	return h.performMonitorCheck(ctx, monitor)
-}
-
 func (h *Handler) Routes() *chi.Mux {
 	router := routes.DefaultRouter()
 
@@ -49,8 +44,7 @@ func (h *Handler) Routes() *chi.Mux {
 		r.Delete("/delete-monitor/{id}", h.DeleteMonitor)
 		r.Get("/get-active-monitors", h.GetAllActiveMonitors)
 		r.Get("/get-all-monitors", h.GetAllMonitors)
-		r.Get("/monitor/{id}/logs",h.GetMonitorLogs) // this route is only for pagination
-		
+		r.Get("/monitor/{id}/logs", h.GetMonitorLogs)
 
 	})
 

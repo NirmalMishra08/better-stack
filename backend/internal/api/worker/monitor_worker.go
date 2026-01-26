@@ -12,8 +12,7 @@ import (
 
 type MonitorWorker struct {
 	monitorHandler *monitor.Handler
-	alertHandler *alert.Handler
-
+	alertHandler   *alert.Handler
 }
 
 type TestURLResponse = alert.TestURLResponse
@@ -21,13 +20,14 @@ type TestURLResponse = alert.TestURLResponse
 func NewMonitorWorker(store db.Store, config *config.Config) *MonitorWorker {
 	return &MonitorWorker{
 		monitorHandler: monitor.NewHandler(config, store),
-		alertHandler: alert.NewHandler(config,store),
+		alertHandler:   alert.NewHandler(config, store),
 	}
 }
 
 func (w *MonitorWorker) Start(ctx context.Context) {
 
-	commonIntervals := []int32{30, 60, 120, 300, 600, 1800, 3600}
+	// commonIntervals := []int32{30, 60, 120, 300, 600, 1800, 3600}
+	commonIntervals := []int32{30, 60}
 
 	log.Println("🚀 Monitor worker started")
 
@@ -71,6 +71,7 @@ func (w *MonitorWorker) checkMonitorsByInterval(ctx context.Context, interval in
 			if err := w.alertHandler.CheckAndSendAlerts(ctx, m, result); err != nil {
 				log.Printf("Error sending alerts for %d: %v", m.ID, err)
 			}
+			log.Print(result)
 			log.Printf("✅ %s: %s (%dms)", result.Url, result.Status, int(result.ResponseTime))
 		}(monitor)
 	}

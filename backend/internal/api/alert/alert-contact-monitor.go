@@ -26,10 +26,7 @@ func (h *Handler) GetAlertContactsForMonitor(ctx context.Context, monitorID int3
 }
 
 func (h *Handler) CheckAndSendAlerts(ctx context.Context, monitor db.Monitor, checkResult *monitor.TestURLResponse) error {
-	contacts, err := h.GetAlertContactsForMonitor(ctx, monitor.ID)
-	if err != nil {
-		return err
-	}
+
 
 	newStatus := checkResult.Status
 	oldStatus := monitor.LastStatus
@@ -55,17 +52,32 @@ func (h *Handler) CheckAndSendAlerts(ctx context.Context, monitor db.Monitor, ch
 		checkResult.ResponseTime,
 	)
 
+	previous := "unknown"
+	if monitor.LastStatus.Valid {
+		previous = string(monitor.LastStatus.MonitorStatus)
+	}
+
+	// If status hasn't changed → do nothing
+	if previous == newStatus {
+		return nil
+	}
+	user, err := h.store.GetUserByID(
+		ctx,
+		monitor.UserID.Bytes,
+	)
+	if err != nil {
+		return err
+	}
+
 	// 5. Send email to all contacts
-	for _, c := range contacts {
-		if err := email.SendStatusAlert(
-			c.Email,     // to
-			monitor.Url, // websiteURL
-			isUp,        // isUp bool
-			fmt.Sprintf("%.0fms", checkResult.ResponseTime), // responseTime string
-			time.Now().Format("2006-01-02 15:04:05"),        // lastChecked string
-		); err != nil {
-			fmt.Println("Email failed:", err)
-		}
+	if err := email.SendStatusAlert(
+		user.Email,
+		monitor.Url,
+		isUp,
+		fmt.Sprintf("%.0fms", checkResult.ResponseTime),
+		time.Now().Format("2006-01-02 15:04:05"),
+	); err != nil {
+		fmt.Println("email failed:", err)
 	}
 
 	// Save the alert log once

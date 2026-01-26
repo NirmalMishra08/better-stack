@@ -1,6 +1,8 @@
 package monitor
 
 import (
+	"better-uptime/common/email"
+	"better-uptime/common/logger"
 	"better-uptime/common/middleware"
 	"better-uptime/common/util"
 	db "better-uptime/internal/db/sqlc"
@@ -13,17 +15,19 @@ import (
 )
 
 func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) error {
+	fmt.Println(">>> ENTERED CheckSingleMonitor")
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	start := time.Now()
-	resp, err := client.Get(monitor.Url)
-	responseTime := time.Since(start).Seconds()*1000
+
+	resp, respErr := client.Get(monitor.Url)
+	responseTime := time.Since(start).Seconds() * 1000
 
 	var statusCode int32
 	status := "down"
 
-	if err != nil {
-		statusCode = int32(resp.StatusCode)
+	if respErr != nil {
+		statusCode = 0
 	} else {
 		defer resp.Body.Close()
 		statusCode = int32(resp.StatusCode)
@@ -32,12 +36,33 @@ func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) er
 		}
 	}
 
+	user, err := h.store.GetUserByID(ctx, monitor.UserID.Bytes)
+	if err != nil {
+		fmt.Println("not able to find user:", err)
+		return err
+	}
+
+	previous := "unknown"
+	if monitor.Status.Valid {
+		previous = string(monitor.Status.MonitorStatus)
+	}
+
+	if previous != status {
+		email.SendStatusAlert(
+			user.Email,
+			monitor.Url,
+			status == "up",
+			fmt.Sprintf("%f", responseTime),
+			time.Now().Format("2006-01-02 15:04:05"),
+		)
+	}
+
 	// Save log entry
 	_, err = h.store.CreateMonitorLog(ctx, db.CreateMonitorLogParams{
 		MonitorID:    pgtype.Int4{Int32: monitor.ID, Valid: true},
 		StatusCode:   pgtype.Int4{Int32: statusCode, Valid: true},
 		ResponseTime: pgtype.Float8{Float64: responseTime, Valid: true},
-		DnsOk:        pgtype.Bool{Bool: (err == nil), Valid: true},
+		DnsOk:        pgtype.Bool{Bool: (respErr == nil), Valid: true},
 		SslOk:        pgtype.Bool{Bool: true, Valid: true},
 		ContentOk:    pgtype.Bool{Bool: true, Valid: true},
 	})
@@ -46,7 +71,9 @@ func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) er
 	}
 
 	// Update monitor status
-	_, err = h.store.UpdateMonitor(ctx, db.UpdateMonitorParams{
+	logger.Debug(monitor.UserID.String())
+
+	monitorNew, err := h.store.UpdateMonitor(ctx, db.UpdateMonitorParams{
 		ID:       monitor.ID,
 		Url:      monitor.Url,
 		Method:   monitor.Method,
@@ -59,6 +86,7 @@ func (h *Handler) CheckSingleMonitor(ctx context.Context, monitor db.Monitor) er
 	if err != nil {
 		return err
 	}
+	logger.Debug(fmt.Sprintf("%+v", monitorNew))
 
 	return nil
 }
