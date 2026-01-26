@@ -19,7 +19,6 @@ apiClient.interceptors.request.use(
     try {
       const { getFirebaseToken } = await import('./auth');
       const token = await getFirebaseToken();
-      console.log('Firebase token:', token);
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { monitorAPI, type Monitor as MonitorType } from '@/lib/api';
 import {
     Monitor,
     Activity,
@@ -40,58 +41,46 @@ export default function Dashboard() {
     const [activeTab, setActiveTab] = useState('overview');
     const router = useRouter();
 
-    // useEffect(() => {
-    //     const checkAuth = async () => {
-    //         const authenticated = await isAuthenticated();
-    //         if (!authenticated) {
-    //             router.push('/login');
-    //         }
-    //     };
-    //     checkAuth();
-    // }, [router]);
+    const [monitoringData, setMonitoringData] = useState<Array<{
+        id: number;
+        name: string;
+        url: string;
+        status: string;
+        uptime: string;
+        responseTime: string;
+        lastCheck: string;
+        location: string;
+    }>>([]);
 
-    const monitoringData = [
-        {
-            id: 1,
-            name: 'Main Website',
-            url: 'https://example.com',
-            status: 'up',
-            uptime: '99.9%',
-            responseTime: '245ms',
-            lastCheck: '2 minutes ago',
-            location: 'US East'
-        },
-        {
-            id: 2,
-            name: 'API Endpoint',
-            url: 'https://api.example.com',
-            status: 'down',
-            uptime: '98.2%',
-            responseTime: '1.2s',
-            lastCheck: '5 minutes ago',
-            location: 'EU West'
-        },
-        {
-            id: 3,
-            name: 'Database',
-            url: 'https://db.example.com',
-            status: 'up',
-            uptime: '99.8%',
-            responseTime: '89ms',
-            lastCheck: '1 minute ago',
-            location: 'Asia Pacific'
-        },
-        {
-            id: 4,
-            name: 'CDN Status',
-            url: 'https://cdn.example.com',
-            status: 'up',
-            uptime: '99.7%',
-            responseTime: '156ms',
-            lastCheck: '3 minutes ago',
-            location: 'Global'
-        }
-    ];
+
+    const [monitorsLoading, setMonitorsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadMonitors = async () => {
+            try {
+                const list = await monitorAPI.getAllMonitors();
+                setMonitoringData((list as MonitorType[]).map((m) => ({
+                    id: m.id,
+                    name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
+                    url: m.url,
+                    status: typeof m.status === 'string' ? m.status : (m.status as string) || 'unknown',
+                    uptime: '—',
+                    responseTime: '—',
+                    lastCheck: '—',
+                    location: '—',
+                })));
+
+                console.log(monitoringData)
+            } catch (e) {
+                console.error('Failed to load monitors:', e);
+            } finally {
+                setMonitorsLoading(false);
+            }
+        };
+        loadMonitors();
+    }, []);
+
+    console.log(monitoringData)
 
     const recentAlerts = [
         {
@@ -121,10 +110,10 @@ export default function Dashboard() {
     ];
 
     const stats = [
-        { label: 'Total Monitors', value: '12', change: '+2', trend: 'up' },
-        { label: 'Uptime', value: '99.8%', change: '+0.1%', trend: 'up' },
-        { label: 'Avg Response', value: '245ms', change: '-12ms', trend: 'up' },
-        { label: 'Alerts Today', value: '3', change: '-1', trend: 'down' }
+        { label: 'Total Monitors', value: String(monitoringData.length), change: '', trend: 'up' as const },
+        { label: 'Uptime', value: '—', change: '', trend: 'up' as const },
+        { label: 'Avg Response', value: '—', change: '', trend: 'up' as const },
+        { label: 'Alerts Today', value: '—', change: '', trend: 'down' as const }
     ];
 
     return (
@@ -246,51 +235,57 @@ export default function Dashboard() {
                         </div>
 
                         <div className="divide-y divide-slate-700">
-                            {monitoringData.map((monitor) => (
-                                <div key={monitor.id} className="p-6 hover:bg-slate-750 transition-colors">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-4">
-                                            <div className={`w-3 h-3 rounded-full ${monitor.status === 'up' ? 'bg-green-400' : 'bg-red-400'
-                                                }`}></div>
-                                            <div>
-                                                <h4 className="font-medium text-white">{monitor.name}</h4>
-                                                <p className="text-slate-400 text-sm">{monitor.url}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center space-x-6">
-                                            <div className="text-center">
-                                                <p className="text-sm text-slate-400">Uptime</p>
-                                                <p className="font-medium">{monitor.uptime}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-sm text-slate-400">Response</p>
-                                                <p className="font-medium">{monitor.responseTime}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-sm text-slate-400">Location</p>
-                                                <p className="font-medium">{monitor.location}</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-sm text-slate-400">Last Check</p>
-                                                <p className="font-medium">{monitor.lastCheck}</p>
+                            {monitorsLoading ? (
+                                <div className="p-6 text-slate-400 text-center">Loading monitors...</div>
+                            ) : monitoringData.length === 0 ? (
+                                <div className="p-6 text-slate-400 text-center">No monitors yet. Add one from the button above.</div>
+                            ) : (
+                                monitoringData.map((monitor) => (
+                                    <div key={monitor.id} className="p-6 hover:bg-slate-750 transition-colors">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-4">
+                                                <div className={`w-3 h-3 rounded-full ${monitor.status === 'up' ? 'bg-green-400' : monitor.status === 'down' ? 'bg-red-400' : 'bg-slate-500'
+                                                    }`}></div>
+                                                <div>
+                                                    <h4 className="font-medium text-white">{monitor.name}</h4>
+                                                    <p className="text-slate-400 text-sm">{monitor.url}</p>
+                                                </div>
                                             </div>
 
-                                            <div className="flex items-center space-x-2">
-                                                <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                                    <Eye className="w-4 h-4" />
-                                                </button>
-                                                <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                                    <MoreHorizontal className="w-4 h-4" />
-                                                </button>
+                                            <div className="flex items-center space-x-6">
+                                                <div className="text-center">
+                                                    <p className="text-sm text-slate-400">Uptime</p>
+                                                    <p className="font-medium">{monitor.uptime}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm text-slate-400">Response</p>
+                                                    <p className="font-medium">{monitor.responseTime}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm text-slate-400">Location</p>
+                                                    <p className="font-medium">{monitor.location}</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm text-slate-400">Last Check</p>
+                                                    <p className="font-medium">{monitor.lastCheck}</p>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                    <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                        <MoreHorizontal className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 

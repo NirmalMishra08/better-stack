@@ -33,4 +33,4 @@ export const auth = authInstance;
 // Initialize Analytics (only in browser)
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
-export  { app };
+export { app };

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
     Monitor,
     Plus,
@@ -27,19 +28,64 @@ import {
 import { useUser } from '../hooks/useUser';
 import LogoutModal from "@/app/dashboard/_component/logout-modal"
 import Spinner from '../components/spinner';
-import { monitorAPI } from '@/lib/api';
+import { monitorAPI, type Monitor as MonitorType } from '@/lib/api';
 
 
 type User = {
     photoURL: string
 }
 
+type MonitorDisplay = {
+    id: number;
+    name: string;
+    url: string;
+    status: string;
+    is_active: string;
+    uptime: string;
+    responseTime: string;
+    lastCheck: string;
+    location: string;
+    type: string;
+    frequency: string;
+    notifications: boolean;
+};
+
 export default function MonitorsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [isModalOpen, setModalOpen] = useState(false);
+    const [monitors, setMonitors] = useState<MonitorDisplay[]>([]);
+    const [monitorsLoading, setMonitorsLoading] = useState(true);
 
     const { data: user, isLoading } = useUser();
+
+    const loadMonitors = async () => {
+        try {
+            const list = await monitorAPI.getAllMonitors();
+            setMonitors((list as MonitorType[]).map((m) => ({
+                id: m.id,
+                name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
+                url: m.url,
+                status: typeof m.status === 'string' ? m.status : (m.status as string) || 'unknown',
+                is_active: m.is_active ? 'true' : 'false',
+                uptime: '—',
+                responseTime: '—',
+                lastCheck: '—',
+                location: '—',
+                type: typeof m.type === 'string' ? m.type : (m.type as string) || 'HTTP',
+                frequency: m.interval ? `${m.interval}s` : '—',
+                notifications: false,
+            })));
+        } catch (e) {
+            console.error('Failed to load monitors:', e);
+        } finally {
+            setMonitorsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadMonitors();
+    }, []);
 
     if (isLoading) {
         return (
@@ -48,80 +94,6 @@ export default function MonitorsPage() {
             </div>
         );
     }
-
-    console.log(user)
-
-    const monitors = [
-        {
-            id: 1,
-            name: 'Main Website',
-            url: 'https://example.com',
-            status: 'up',
-            is_active: "true",
-            uptime: '99.9%',
-            responseTime: '245ms',
-            lastCheck: '2 minutes ago',
-            location: 'US East',
-            type: 'HTTP',
-            frequency: '1 minute',
-            notifications: true
-        },
-        {
-            id: 2,
-            name: 'API Endpoint',
-            url: 'https://api.example.com/health',
-            status: 'down',
-            is_active: "true",
-            uptime: '98.2%',
-            responseTime: '1.2s',
-            lastCheck: '5 minutes ago',
-            location: 'EU West',
-            type: 'HTTP',
-            frequency: '30 seconds',
-            notifications: true
-        },
-        {
-            id: 3,
-            name: 'Database Connection',
-            url: 'https://db.example.com',
-            status: 'up',
-            is_active: "true",
-            uptime: '99.8%',
-            responseTime: '89ms',
-            lastCheck: '1 minute ago',
-            location: 'Asia Pacific',
-            type: 'TCP',
-            frequency: '1 minute',
-            notifications: false
-        },
-        {
-            id: 4,
-            name: 'CDN Status',
-            url: 'https://cdn.example.com',
-            status: 'up',
-            is_active: "true",
-            uptime: '99.7%',
-            responseTime: '156ms',
-            lastCheck: '3 minutes ago',
-            location: 'Global',
-            type: 'HTTP',
-            frequency: '2 minutes',
-            notifications: true
-        },
-        {
-            id: 5,
-            name: 'SSL Certificate',
-            url: 'https://secure.example.com',
-            status: 'warning',
-            uptime: '99.5%',
-            responseTime: '320ms',
-            lastCheck: '4 minutes ago',
-            location: 'US West',
-            type: 'SSL',
-            frequency: '5 minutes',
-            notifications: true
-        }
-    ];
 
     const getStatusIcon = (status: string) => {
         switch (status) {
@@ -161,8 +133,13 @@ export default function MonitorsPage() {
         setModalOpen(false);
     }
 
-    const handleChangeActive = (id: number, currentStatus: boolean) => {
-        monitorAPI.toggleMonitor(Number(id), !currentStatus)
+    const handleChangeActive = async (id: number, currentStatus: boolean) => {
+        try {
+            await monitorAPI.toggleMonitor(Number(id), !currentStatus);
+            await loadMonitors();
+        } catch (e) {
+            console.error('Toggle monitor failed:', e);
+        }
     }
 
     return (
@@ -245,10 +222,10 @@ export default function MonitorsPage() {
                         </div>
 
                         <div className="flex items-center space-x-4">
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                            <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                                 <Plus className="w-4 h-4" />
                                 <span>Add Monitor</span>
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </header>
@@ -290,6 +267,9 @@ export default function MonitorsPage() {
 
                 {/* Monitors Grid */}
                 <div className="p-6">
+                    {monitorsLoading ? (
+                        <div className="text-center py-12 text-slate-400">Loading monitors...</div>
+                    ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filteredMonitors.map((monitor) => (
                             <div key={monitor.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors">
@@ -366,10 +346,9 @@ export default function MonitorsPage() {
                                 <div className="mt-6 pt-4 border-t border-slate-700">
                                     <div className="flex items-center space-x-2">
                                         <button
-                                            onClick={() => handleChangeActive(monitor.id, monitor?.is_active === "true")}
+                                            onClick={() => handleChangeActive(monitor.id, monitor.is_active === 'true')}
                                             className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
-                                            <Play className="w-4 h-4" />
-                                            <span>Pause</span>
+                                            {monitor.is_active === 'true' ? <><Pause className="w-4 h-4" /><span>Pause</span></> : <><Play className="w-4 h-4" /><span>Resume</span></>}
                                         </button>
                                         <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
                                             <ExternalLink className="w-4 h-4" />
@@ -380,16 +359,17 @@ export default function MonitorsPage() {
                             </div>
                         ))}
                     </div>
+                    )}
 
-                    {filteredMonitors.length === 0 && (
+                    {!monitorsLoading && filteredMonitors.length === 0 && (
                         <div className="text-center py-12">
                             <Monitor className="w-16 h-16 text-slate-500 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-slate-300 mb-2">No monitors found</h3>
                             <p className="text-slate-400 mb-6">Try adjusting your search or filter criteria</p>
-                            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto">
+                            <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto w-fit">
                                 <Plus className="w-4 h-4" />
                                 <span>Add Your First Monitor</span>
-                            </button>
+                            </Link>
                         </div>
                     )}
                 </div>
