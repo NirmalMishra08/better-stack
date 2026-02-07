@@ -27,7 +27,8 @@ import {
     ChevronLeft,
     ChevronRight,
     X,
-    Loader2
+    Loader2,
+    Shield
 } from 'lucide-react';
 import { useUser } from '../hooks/useUser';
 import LogoutModal from "@/app/dashboard/_component/logout-modal"
@@ -39,7 +40,7 @@ type User = {
     photoURL: string
 }
 
-type MonitorDisplay = {
+export type MonitorDisplay = {
     id: number;
     name: string;
     url: string;
@@ -66,8 +67,73 @@ export default function MonitorsPage() {
     const [selectedMonitor, setSelectedMonitor] = useState<MonitorDisplay | null>(null);
     const [logs, setLogs] = useState<MonitorLog[]>([]);
     const [logsLoading, setLogsLoading] = useState(false);
-    const [logsPage, setLogsPage] = useState(0);
+    const [logsPage, setLogsPage] = useState(1);
     const [logsTotal, setLogsTotal] = useState(0);
+
+    // Stats/Details Modal State
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [monitorStats, setMonitorStats] = useState<{
+        uptime: string;
+        avgResponse: string;
+        totalChecks: number;
+        lastStatus: number | null;
+        sslOk: boolean | null;
+        dnsOk: boolean | null;
+        lastCheck: string;
+    } | null>(null);
+
+    // Edit Modal State
+    const [editModalOpen, setEditModalOpen] = useState(false);
+
+    const openEditModal = (monitor: MonitorDisplay) => {
+        setSelectedMonitor(monitor);
+        setEditModalOpen(true);
+    };
+
+
+    const openStatsModal = async (monitor: MonitorDisplay) => {
+        setSelectedMonitor(monitor);
+        setStatsModalOpen(true);
+        setStatsLoading(true);
+        setMonitorStats(null); // Clear previous stats
+
+        // Fetch logs to calculate detailed stats
+        try {
+            const response = await monitorAPI.getMonitorLogs(monitor.id, { limit: 100 });
+            const logs = response.logs;
+
+            if (logs.length > 0) {
+                // Calculate detailed stats
+                const successfulChecks = logs.filter(l => l.status_code && l.status_code >= 200 && l.status_code < 400).length;
+                const uptime = ((successfulChecks / logs.length) * 100).toFixed(2);
+
+                const responseTimes = logs.filter(l => l.response_time).map(l => l.response_time!);
+                const avgResponse = responseTimes.length > 0
+                    ? (responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length).toFixed(0)
+                    : '0';
+
+                const lastLog = logs[0];
+
+                setMonitorStats({
+                    uptime: `${uptime}%`,
+                    avgResponse: `${avgResponse}ms`,
+                    totalChecks: logs.length,
+                    lastStatus: lastLog.status_code,
+                    sslOk: lastLog.ssl_ok,
+                    dnsOk: lastLog.dns_ok,
+                    lastCheck: new Date(lastLog.checked_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+                });
+            } else {
+                setMonitorStats(null);
+            }
+        } catch (e) {
+            console.error('Failed to fetch stats:', e);
+            setMonitorStats(null);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
     const LOGS_PER_PAGE = 10;
 
     const { data: user, isLoading } = useUser();
@@ -252,6 +318,30 @@ export default function MonitorsPage() {
         return matchesSearch && matchesFilter;
     });
 
+    // Download monitors as CSV
+    const downloadMonitorsCSV = () => {
+        const headers = ['Name', 'URL', 'Status', 'Type', 'Frequency', 'Uptime', 'Response Time', 'Last Check'];
+        const rows = filteredMonitors.map(m => [
+            m.name,
+            m.url,
+            m.status,
+            m.type,
+            m.frequency,
+            m.uptime,
+            m.responseTime,
+            m.lastCheck
+        ]);
+
+        const csv = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell}"`).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `monitors-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
     const handleLogout = () => {
         console.log("Logging out...");
         setModalOpen(false);
@@ -379,11 +469,11 @@ export default function MonitorsPage() {
                             <option value="warning">Warning</option>
                         </select>
 
-                        <button className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
-                            <Filter className="w-4 h-4" />
-                        </button>
-
-                        <button className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
+                        <button
+                            onClick={downloadMonitorsCSV}
+                            className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
+                            title="Download CSV"
+                        >
                             <Download className="w-4 h-4" />
                         </button>
                     </div>
@@ -408,17 +498,39 @@ export default function MonitorsPage() {
 
                                         <div className="flex items-center space-x-2">
                                             <button
+                                                onClick={() => handleChangeActive(monitor.id, monitor.is_active === 'true')}
+                                                className={`p-2 rounded-lg transition-colors ${monitor.is_active === 'true'
+                                                    ? 'hover:bg-red-500/20 text-red-400'
+                                                    : 'hover:bg-green-500/20 text-green-400'
+                                                    }`}
+                                                title={monitor.is_active === 'true' ? 'Pause Monitor' : 'Resume Monitor'}
+                                            >
+                                                {monitor.is_active === 'true' ? (
+                                                    <Pause className="w-4 h-4" />
+                                                ) : (
+                                                    <Play className="w-4 h-4" />
+                                                )}
+                                            </button>
+                                            <button
+                                                onClick={() => openEditModal(monitor)}
+                                                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                                                title="Edit Monitor"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
                                                 onClick={() => openLogsModal(monitor)}
                                                 className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
                                                 title="View Logs"
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
-                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                                <MoreHorizontal className="w-4 h-4" />
+                                            <button
+                                                onClick={() => openStatsModal(monitor)}
+                                                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                                                title="View Details"
+                                            >
+                                                <BarChart3 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -477,10 +589,6 @@ export default function MonitorsPage() {
                                                 onClick={() => handleChangeActive(monitor.id, monitor.is_active === 'true')}
                                                 className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
                                                 {monitor.is_active === 'true' ? <><Pause className="w-4 h-4" /><span>Pause</span></> : <><Play className="w-4 h-4" /><span>Resume</span></>}
-                                            </button>
-                                            <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2">
-                                                <ExternalLink className="w-4 h-4" />
-                                                <span>View Details</span>
                                             </button>
                                         </div>
                                     </div>
@@ -550,17 +658,24 @@ export default function MonitorsPage() {
                                                 </td>
                                                 <td className="py-3 pr-4">
                                                     <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${log.status_code && log.status_code >= 200 && log.status_code < 400
-                                                        ? 'bg-green-400/10 text-green-400'
-                                                        : 'bg-red-400/10 text-red-400'
+                                                        ? 'bg-green-500/10 text-green-400'
+                                                        : 'bg-red-500/10 text-red-400'
                                                         }`}>
-                                                        {log.status_code || 'N/A'}
+                                                        {log.status_code || 'Err'}
                                                     </span>
+                                                    {(!log.status_code || log.status_code >= 400) && (
+                                                        <div className="text-xs text-red-400 mt-1">
+                                                            {!log.dns_ok ? 'DNS Failed' : !log.ssl_ok ? 'SSL Error' : 'HTTP Error'}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="py-3 pr-4 text-slate-300 text-sm">
                                                     {log.response_time ? `${log.response_time.toFixed(0)}ms` : '—'}
                                                 </td>
                                                 <td className="py-3 text-slate-400 text-sm">
-                                                    {log.error_message || (log.status === 'up' ? 'OK' : log.status)}
+                                                    {/* This column is now empty as per the diff, but the header is still there.
+                                                        If the header should also be removed, that's a separate instruction.
+                                                        For now, just removing the content as per the diff. */}
                                                 </td>
                                             </tr>
                                         ))}
@@ -597,6 +712,222 @@ export default function MonitorsPage() {
                     </div>
                 </div>
             )}
+            {/* Edit Monitor Modal */}
+            {editModalOpen && selectedMonitor && (
+                <EditMonitorModal
+                    monitor={selectedMonitor}
+                    isOpen={editModalOpen}
+                    onClose={() => setEditModalOpen(false)}
+                    onUpdate={() => {
+                        setEditModalOpen(false);
+                        loadMonitors();
+                    }}
+                />
+            )}
+
+            {/* Monitor Stats Modal */}
+            {statsModalOpen && selectedMonitor && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+                    <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 w-full max-w-2xl min-h-[300px]">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-xl font-semibold mb-1">{selectedMonitor.name}</h3>
+                                <p className="text-slate-400 text-sm">{selectedMonitor.url}</p>
+                            </div>
+                            <button
+                                onClick={() => setStatsModalOpen(false)}
+                                className="text-slate-400 hover:text-white"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {statsLoading ? (
+                            <div className="flex justify-center items-center h-48">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                            </div>
+                        ) : monitorStats ? (
+                            <>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                    <div className="bg-slate-700/50 p-4 rounded-lg">
+                                        <div className="text-slate-400 text-xs mb-1">Uptime</div>
+                                        <div className="text-2xl font-semibold text-green-400">{monitorStats.uptime}</div>
+                                    </div>
+                                    <div className="bg-slate-700/50 p-4 rounded-lg">
+                                        <div className="text-slate-400 text-xs mb-1">Avg Response</div>
+                                        <div className="text-2xl font-semibold text-blue-400">{monitorStats.avgResponse}</div>
+                                    </div>
+                                    <div className="bg-slate-700/50 p-4 rounded-lg">
+                                        <div className="text-slate-400 text-xs mb-1">Total Checks</div>
+                                        <div className="text-2xl font-semibold">{monitorStats.totalChecks}</div>
+                                    </div>
+                                    <div className="bg-slate-700/50 p-4 rounded-lg">
+                                        <div className="text-slate-400 text-xs mb-1">Last Status</div>
+                                        <div className={`text-2xl font-semibold ${monitorStats.lastStatus && monitorStats.lastStatus >= 200 && monitorStats.lastStatus < 400 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {monitorStats.lastStatus || '—'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-slate-700/50 p-4 rounded-lg flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <Shield className={`w-5 h-5 ${monitorStats.sslOk ? 'text-green-400' : 'text-red-400'}`} />
+                                            <span className="text-sm font-medium">SSL Certificate</span>
+                                        </div>
+                                        <span className={`text-sm ${monitorStats.sslOk ? 'text-green-400' : 'text-red-400'}`}>
+                                            {monitorStats.sslOk ? 'Valid' : 'Invalid'}
+                                        </span>
+                                    </div>
+                                    <div className="bg-slate-700/50 p-4 rounded-lg flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <Globe className={`w-5 h-5 ${monitorStats.dnsOk ? 'text-green-400' : 'text-red-400'}`} />
+                                            <span className="text-sm font-medium">DNS Resolution</span>
+                                        </div>
+                                        <span className={`text-sm ${monitorStats.dnsOk ? 'text-green-400' : 'text-red-400'}`}>
+                                            {monitorStats.dnsOk ? 'Resolved' : 'Failed'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-slate-700 flex justify-between items-center">
+                                    <span className="text-xs text-slate-500">
+                                        Last checked: {monitorStats.lastCheck}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-12 text-slate-400">
+                                Failed to load statistics data.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function EditMonitorModal({ monitor, isOpen, onClose, onUpdate }: { monitor: MonitorDisplay, isOpen: boolean, onClose: () => void, onUpdate: () => void }) {
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({
+        url: monitor.url,
+        method: 'GET', // Default, as generic specific might not be available in MonitorDisplay
+        type: monitor.type,
+        interval: parseInt(monitor.frequency) || 60, // Parse "60s" or default
+        is_active: monitor.is_active === 'true'
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
+        setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await monitorAPI.updateMonitor({
+                id: monitor.id,
+                url: form.url,
+                method: form.method,
+                type: form.type,
+                interval: Number(form.interval),
+                is_active: form.is_active
+            });
+            onUpdate();
+        } catch (error) {
+            console.error('Failed to update monitor:', error);
+            // Optionally show toast/alert
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 w-full max-w-md">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold">Edit Monitor</h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">URL</label>
+                        <input
+                            type="text"
+                            name="url"
+                            value={form.url}
+                            onChange={handleChange}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+                            <select
+                                name="type"
+                                value={form.type}
+                                onChange={handleChange}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="HTTP">HTTP</option>
+                                <option value="PING">Ping</option>
+                                <option value="KWORD">Keyword</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1">Interval (sec)</label>
+                            <input
+                                type="number"
+                                name="interval"
+                                value={form.interval}
+                                onChange={handleChange}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                                min="10"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            id="edit_is_active"
+                            name="is_active"
+                            checked={form.is_active}
+                            onChange={handleChange}
+                            className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500"
+                        />
+                        <label htmlFor="edit_is_active" className="text-sm text-slate-300">Active</label>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 flex items-center gap-2"
+                        >
+                            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

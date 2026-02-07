@@ -45,6 +45,7 @@ func (h *Handler) Routes() *chi.Mux {
 		r.Get("/get-active-monitors", h.GetAllActiveMonitors)
 		r.Get("/get-all-monitors", h.GetAllMonitors)
 		r.Get("/monitor/{id}/logs", h.GetMonitorLogs)
+		r.Put("/update-monitor", h.UpdateMonitor)
 
 	})
 

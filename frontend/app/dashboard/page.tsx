@@ -55,6 +55,36 @@ export default function Dashboard() {
 
 
     const [monitorsLoading, setMonitorsLoading] = useState(true);
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+    // Download monitors as CSV
+    const downloadMonitorsCSV = () => {
+        const headers = ['Name', 'URL', 'Status', 'Uptime', 'Response Time', 'Last Check'];
+        const rows = monitoringData.map(m => [
+            m.name,
+            m.url,
+            m.status,
+            m.uptime,
+            m.responseTime,
+            m.lastCheck
+        ]);
+
+        const csv = [headers.join(','), ...rows.map(r => r.map(cell => `"${cell}"`).join(','))].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `monitors-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
+    // Filter monitors
+    const filteredMonitors = monitoringData.filter(m => {
+        if (filterStatus === 'all') return true;
+        return m.status === filterStatus;
+    });
 
     useEffect(() => {
         const loadMonitors = async () => {
@@ -413,10 +443,20 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between">
                                 <h3 className="text-lg font-semibold">Monitors</h3>
                                 <div className="flex items-center space-x-2">
-                                    <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                        <Filter className="w-4 h-4" />
-                                    </button>
-                                    <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                    <select
+                                        value={filterStatus}
+                                        onChange={(e) => setFilterStatus(e.target.value)}
+                                        className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="all">All Status</option>
+                                        <option value="up">Up</option>
+                                        <option value="down">Down</option>
+                                    </select>
+                                    <button
+                                        onClick={downloadMonitorsCSV}
+                                        className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                                        title="Download CSV"
+                                    >
                                         <Download className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -426,10 +466,10 @@ export default function Dashboard() {
                         <div className="divide-y divide-slate-700">
                             {monitorsLoading ? (
                                 <div className="p-6 text-slate-400 text-center">Loading monitors...</div>
-                            ) : monitoringData.length === 0 ? (
-                                <div className="p-6 text-slate-400 text-center">No monitors yet. Add one from the button above.</div>
+                            ) : filteredMonitors.length === 0 ? (
+                                <div className="p-6 text-slate-400 text-center">No monitors match the filter.</div>
                             ) : (
-                                monitoringData.map((monitor) => (
+                                filteredMonitors.map((monitor) => (
                                     <div key={monitor.id} className="p-6 hover:bg-slate-750 transition-colors">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center space-x-4">

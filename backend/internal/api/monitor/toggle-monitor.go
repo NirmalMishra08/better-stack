@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"better-uptime/common/logger"
 	"better-uptime/common/middleware"
 	"better-uptime/common/util"
 	db "better-uptime/internal/db/sqlc"
@@ -17,7 +18,7 @@ type ToggleMonitorParams struct {
 
 type ToggleMonitorRequest struct {
 	ID       int64 `json:"id" validate:"required"`
-	IsActive bool  `json:"is_active" validate:"required"`
+	IsActive bool  `json:"is_active"`
 }
 
 func (h *Handler) ToggleMonitor(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +32,9 @@ func (h *Handler) ToggleMonitor(w http.ResponseWriter, r *http.Request) {
 	userId := payload.UserId
 
 	var req ToggleMonitorRequest
-	if err := util.ReadJsonAndValidate(w, r, &req); err != nil {
+	 err = util.ReadJsonAndValidate(w, r, &req); 
+	logger.Debug("id: %d",req.ID)
+	if err != nil {
 		util.ErrorJson(w, util.ErrNotValidRequest)
 		return
 	}

@@ -110,8 +110,10 @@ export interface MonitorLog {
   monitor_id: number;
   status_code: number | null;
   response_time: number | null;
-  status: string;
-  error_message: string | null;
+  dns_ok: boolean | null;
+  ssl_ok: boolean | null;
+  content_ok: boolean | null;
+  screenshot_url: string | null;
   checked_at: string;
 }
 
@@ -128,6 +130,15 @@ export interface MonitorLogsResponse {
 export interface ToggleMonitorRequest {
   id: number;
   is_active: boolean;
+}
+
+export interface UpdateMonitorRequest {
+  id: number;
+  url: string;
+  method?: string;
+  type?: string;
+  interval: number;
+  is_active?: boolean;
 }
 
 export interface AuthRequest {
@@ -251,10 +262,17 @@ export const monitorAPI = {
 
   // Toggle monitor active status
   toggleMonitor: async (id: number, isActive: boolean): Promise<Monitor> => {
+    console.log(id, isActive)
     const response = await apiClient.post('/monitor/toggle-monitor', {
       id,
       is_active: isActive,
     });
+    return response.data;
+  },
+
+  // Update a monitor
+  updateMonitor: async (data: UpdateMonitorRequest): Promise<Monitor> => {
+    const response = await apiClient.put('/monitor/update-monitor', data);
     return response.data;
   },
 
