@@ -208,6 +208,19 @@ export const authAPI = {
   },
 };
 
+export interface MonitorWithStats {
+  id: number;
+  user_id: string;
+  url: string;
+  type: string;
+  interval: number;
+  status: string;
+  is_active: boolean;
+  avg_response_time: string;
+  uptime_percentage: string;
+  last_check: string;
+}
+
 // Monitor API
 export const monitorAPI = {
   // Create a new monitor
@@ -219,6 +232,12 @@ export const monitorAPI = {
   // Get all monitors for the user
   getAllMonitors: async (): Promise<Monitor[]> => {
     const response = await apiClient.get('/monitor/get-all-monitors');
+    return response.data;
+  },
+
+  // Get all monitors with stats
+  getAllMonitorsWithStats: async (): Promise<MonitorWithStats[]> => {
+    const response = await apiClient.get('/monitor/monitors/stats');
     return response.data;
   },
 

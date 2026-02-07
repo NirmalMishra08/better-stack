@@ -27,7 +27,7 @@ func NewMonitorWorker(store db.Store, config *config.Config) *MonitorWorker {
 func (w *MonitorWorker) Start(ctx context.Context) {
 
 	// commonIntervals := []int32{30, 60, 120, 300, 600, 1800, 3600}
-	commonIntervals := []int32{30, 60}
+	commonIntervals := []int32{60, 120}
 
 	log.Println("🚀 Monitor worker started")
 

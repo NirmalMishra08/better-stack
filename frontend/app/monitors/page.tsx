@@ -172,100 +172,46 @@ export default function MonitorsPage() {
 
     const loadMonitors = async () => {
         try {
-            const list = await monitorAPI.getAllMonitors();
+            const list = await monitorAPI.getAllMonitorsWithStats();
 
-            // Fetch logs for each monitor to get stats
-            const monitorsWithStats = await Promise.all(
-                (list as MonitorType[]).map(async (m) => {
-                    // Handle status which may come as object {monitor_status: string, valid: boolean} or string
-                    let statusValue = 'unknown';
-                    if (typeof m.status === 'string') {
-                        statusValue = m.status;
-                    } else if (m.status && typeof m.status === 'object') {
-                        const statusObj = m.status as { monitor_status?: string; valid?: boolean };
-                        statusValue = statusObj.monitor_status || 'unknown';
+            const monitorsDisplay = list.map((m) => {
+                let lastCheck = '—';
+                if (m.last_check && m.last_check !== 'Never') {
+                    const checkDate = new Date(m.last_check);
+                    const now = new Date();
+                    const diffMs = now.getTime() - checkDate.getTime();
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMins / 60);
+                    const diffDays = Math.floor(diffHours / 24);
+
+                    if (diffDays > 0) {
+                        lastCheck = `${diffDays}d ago`;
+                    } else if (diffHours > 0) {
+                        lastCheck = `${diffHours}h ago`;
+                    } else if (diffMins > 0) {
+                        lastCheck = `${diffMins}m ago`;
+                    } else {
+                        lastCheck = 'Just now';
                     }
+                }
 
-                    // Handle type similarly
-                    let typeValue = 'HTTP';
-                    if (typeof m.type === 'string') {
-                        typeValue = m.type;
-                    } else if (m.type && typeof m.type === 'object') {
-                        const typeObj = m.type as { string?: string; valid?: boolean };
-                        typeValue = typeObj.string || 'HTTP';
-                    }
+                return {
+                    id: m.id,
+                    name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
+                    url: m.url,
+                    status: m.status,
+                    is_active: m.is_active ? 'true' : 'false',
+                    uptime: m.uptime_percentage,
+                    responseTime: m.avg_response_time,
+                    lastCheck,
+                    location: 'Global',
+                    type: m.type,
+                    frequency: m.interval ? `${m.interval}s` : '—',
+                    notifications: false,
+                };
+            });
 
-                    // Fetch logs for this monitor to calculate stats
-                    let uptime = '—';
-                    let responseTime = '—';
-                    let lastCheck = '—';
-
-                    try {
-                        const logsResponse = await monitorAPI.getMonitorLogs(m.id, { limit: 50 });
-                        if (logsResponse.logs && logsResponse.logs.length > 0) {
-                            // Calculate uptime
-                            const successfulChecks = logsResponse.logs.filter(
-                                log => log.status_code && log.status_code >= 200 && log.status_code < 400
-                            ).length;
-                            const uptimePercent = (successfulChecks / logsResponse.logs.length) * 100;
-                            uptime = `${uptimePercent.toFixed(1)}%`;
-
-                            // Calculate avg response time
-                            const responseTimes = logsResponse.logs
-                                .filter(log => log.response_time && log.response_time > 0)
-                                .map(log => log.response_time!);
-                            if (responseTimes.length > 0) {
-                                const avgResponse = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
-                                responseTime = `${avgResponse.toFixed(0)}ms`;
-                            }
-
-                            // Last check time - handle UTC timestamp from database
-                            const lastLog = logsResponse.logs[0];
-                            if (lastLog.checked_at) {
-                                // Append 'Z' to treat as UTC if not already present
-                                const timestampStr = lastLog.checked_at.endsWith('Z')
-                                    ? lastLog.checked_at
-                                    : lastLog.checked_at + 'Z';
-                                const checkDate = new Date(timestampStr);
-                                const now = new Date();
-                                const diffMs = now.getTime() - checkDate.getTime();
-                                const diffMins = Math.floor(diffMs / 60000);
-                                const diffHours = Math.floor(diffMins / 60);
-                                const diffDays = Math.floor(diffHours / 24);
-
-                                if (diffDays > 0) {
-                                    lastCheck = `${diffDays}d ago`;
-                                } else if (diffHours > 0) {
-                                    lastCheck = `${diffHours}h ago`;
-                                } else if (diffMins > 0) {
-                                    lastCheck = `${diffMins}m ago`;
-                                } else {
-                                    lastCheck = 'Just now';
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error(`Failed to fetch logs for monitor ${m.id}:`, e);
-                    }
-
-                    return {
-                        id: m.id,
-                        name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
-                        url: m.url,
-                        status: statusValue,
-                        is_active: m.is_active ? 'true' : 'false',
-                        uptime,
-                        responseTime,
-                        lastCheck,
-                        location: 'Global',
-                        type: typeValue,
-                        frequency: m.interval ? `${m.interval}s` : '—',
-                        notifications: false,
-                    };
-                })
-            );
-
-            setMonitors(monitorsWithStats);
+            setMonitors(monitorsDisplay);
         } catch (e) {
             console.error('Failed to load monitors:', e);
         } finally {

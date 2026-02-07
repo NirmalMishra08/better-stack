@@ -14,7 +14,7 @@ import (
 const createMonitor = `-- name: CreateMonitor :one
 INSERT INTO monitors (user_id, url, method, type, interval, status, is_active, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, now(), now())
-RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at
+RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at
 `
 
 type CreateMonitorParams struct {
@@ -49,6 +49,7 @@ func (q *Queries) CreateMonitor(ctx context.Context, arg CreateMonitorParams) (M
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -71,7 +72,7 @@ func (q *Queries) DeleteMonitor(ctx context.Context, arg DeleteMonitorParams) er
 }
 
 const getActiveMonitors = `-- name: GetActiveMonitors :many
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors 
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors 
 WHERE is_active = true
 `
 
@@ -95,6 +96,7 @@ func (q *Queries) GetActiveMonitors(ctx context.Context) ([]Monitor, error) {
 			&i.LastStatus,
 			&i.LastAlertSentAt,
 			&i.IsActive,
+			&i.ConsecutiveFailures,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -109,7 +111,7 @@ func (q *Queries) GetActiveMonitors(ctx context.Context) ([]Monitor, error) {
 }
 
 const getActiveMonitorsForUser = `-- name: GetActiveMonitorsForUser :many
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors 
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors 
 WHERE is_active = true AND user_id = $1
 `
 
@@ -133,6 +135,7 @@ func (q *Queries) GetActiveMonitorsForUser(ctx context.Context, userID pgtype.UU
 			&i.LastStatus,
 			&i.LastAlertSentAt,
 			&i.IsActive,
+			&i.ConsecutiveFailures,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -147,7 +150,7 @@ func (q *Queries) GetActiveMonitorsForUser(ctx context.Context, userID pgtype.UU
 }
 
 const getMonitorByID = `-- name: GetMonitorByID :one
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors 
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors 
 WHERE id = $1 AND user_id = $2
 `
 
@@ -170,6 +173,7 @@ func (q *Queries) GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) 
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -177,7 +181,7 @@ func (q *Queries) GetMonitorByID(ctx context.Context, arg GetMonitorByIDParams) 
 }
 
 const getMonitorByIdandURL = `-- name: GetMonitorByIdandURL :one
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors
 where user_id = $1 AND url = $2
 `
 
@@ -200,6 +204,7 @@ func (q *Queries) GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdan
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -207,7 +212,7 @@ func (q *Queries) GetMonitorByIdandURL(ctx context.Context, arg GetMonitorByIdan
 }
 
 const getMonitorsByInterval = `-- name: GetMonitorsByInterval :many
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors WHERE is_active = true AND interval = $1
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors WHERE is_active = true AND interval = $1
 `
 
 func (q *Queries) GetMonitorsByInterval(ctx context.Context, interval int32) ([]Monitor, error) {
@@ -230,6 +235,7 @@ func (q *Queries) GetMonitorsByInterval(ctx context.Context, interval int32) ([]
 			&i.LastStatus,
 			&i.LastAlertSentAt,
 			&i.IsActive,
+			&i.ConsecutiveFailures,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -244,7 +250,7 @@ func (q *Queries) GetMonitorsByInterval(ctx context.Context, interval int32) ([]
 }
 
 const getUserMonitors = `-- name: GetUserMonitors :many
-SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at FROM monitors 
+SELECT id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at FROM monitors 
 WHERE user_id = $1 
 ORDER BY created_at DESC
 `
@@ -269,6 +275,7 @@ func (q *Queries) GetUserMonitors(ctx context.Context, userID pgtype.UUID) ([]Mo
 			&i.LastStatus,
 			&i.LastAlertSentAt,
 			&i.IsActive,
+			&i.ConsecutiveFailures,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -282,11 +289,79 @@ func (q *Queries) GetUserMonitors(ctx context.Context, userID pgtype.UUID) ([]Mo
 	return items, nil
 }
 
+const getUserMonitorsWithStats = `-- name: GetUserMonitorsWithStats :many
+SELECT 
+    m.id, 
+    m.user_id,
+    m.url, 
+    m.type, 
+    m.interval,
+    m.status, 
+    m.is_active, 
+    COALESCE(AVG(ml.response_time), 0)::float as avg_response_time,
+    COALESCE(SUM(CASE WHEN ml.status_code >= 200 AND ml.status_code < 400 THEN 1 ELSE 0 END), 0)::bigint as successful_checks,
+    COUNT(ml.id)::bigint as total_checks,
+    MAX(ml.checked_at) as last_check
+FROM monitors m
+LEFT JOIN monitor_logs ml ON m.id = ml.monitor_id
+WHERE m.user_id = $1
+GROUP BY m.id
+ORDER BY m.created_at DESC
+`
+
+type GetUserMonitorsWithStatsRow struct {
+	ID               int32             `json:"id"`
+	UserID           pgtype.UUID       `json:"user_id"`
+	Url              string            `json:"url"`
+	Type             pgtype.Text       `json:"type"`
+	Interval         int32             `json:"interval"`
+	Status           NullMonitorStatus `json:"status"`
+	IsActive         pgtype.Bool       `json:"is_active"`
+	AvgResponseTime  float64           `json:"avg_response_time"`
+	SuccessfulChecks int64             `json:"successful_checks"`
+	TotalChecks      int64             `json:"total_checks"`
+	LastCheck        interface{}       `json:"last_check"`
+}
+
+func (q *Queries) GetUserMonitorsWithStats(ctx context.Context, userID pgtype.UUID) ([]GetUserMonitorsWithStatsRow, error) {
+	rows, err := q.db.Query(ctx, getUserMonitorsWithStats, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetUserMonitorsWithStatsRow{}
+	for rows.Next() {
+		var i GetUserMonitorsWithStatsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Url,
+			&i.Type,
+			&i.Interval,
+			&i.Status,
+			&i.IsActive,
+			&i.AvgResponseTime,
+			&i.SuccessfulChecks,
+			&i.TotalChecks,
+			&i.LastCheck,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const toggleMonitor = `-- name: ToggleMonitor :one
 UPDATE monitors 
-SET is_active = $3, updated_at = CURRENT_TIMESTAMP
+SET is_active = $3, 
+    consecutive_failures = CASE WHEN $3 = true THEN 0 ELSE consecutive_failures END,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at
+RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at
 `
 
 type ToggleMonitorParams struct {
@@ -309,6 +384,7 @@ func (q *Queries) ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (M
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -326,7 +402,7 @@ SET
     is_active = COALESCE($7, is_active),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $8
-RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at
+RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at
 `
 
 type UpdateMonitorParams struct {
@@ -363,6 +439,7 @@ func (q *Queries) UpdateMonitor(ctx context.Context, arg UpdateMonitorParams) (M
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -393,7 +470,7 @@ const updateMonitorStatus = `-- name: UpdateMonitorStatus :one
 UPDATE monitors 
 SET status = $2, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, created_at, updated_at
+RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at
 `
 
 type UpdateMonitorStatusParams struct {
@@ -415,6 +492,50 @@ func (q *Queries) UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStat
 		&i.LastStatus,
 		&i.LastAlertSentAt,
 		&i.IsActive,
+		&i.ConsecutiveFailures,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateMonitorStatusAndFailures = `-- name: UpdateMonitorStatusAndFailures :one
+UPDATE monitors 
+SET status = $2, 
+    consecutive_failures = $3,
+    is_active = $4,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, user_id, url, method, type, interval, status, last_status, last_alert_sent_at, is_active, consecutive_failures, created_at, updated_at
+`
+
+type UpdateMonitorStatusAndFailuresParams struct {
+	ID                  int32             `json:"id"`
+	Status              NullMonitorStatus `json:"status"`
+	ConsecutiveFailures pgtype.Int4       `json:"consecutive_failures"`
+	IsActive            pgtype.Bool       `json:"is_active"`
+}
+
+func (q *Queries) UpdateMonitorStatusAndFailures(ctx context.Context, arg UpdateMonitorStatusAndFailuresParams) (Monitor, error) {
+	row := q.db.QueryRow(ctx, updateMonitorStatusAndFailures,
+		arg.ID,
+		arg.Status,
+		arg.ConsecutiveFailures,
+		arg.IsActive,
+	)
+	var i Monitor
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Url,
+		&i.Method,
+		&i.Type,
+		&i.Interval,
+		&i.Status,
+		&i.LastStatus,
+		&i.LastAlertSentAt,
+		&i.IsActive,
+		&i.ConsecutiveFailures,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

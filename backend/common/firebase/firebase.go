@@ -30,9 +30,19 @@ type FirebasePayload struct {
 }
 
 // Initialize Firebase app and client once
-func InitFirebaseAuth(serviceAccountPath string) error {
+func InitFirebaseAuth(serviceAccountPath, serviceAccountJSON string) error {
 	initOnce.Do(func() {
-		opt := option.WithCredentialsFile(serviceAccountPath)
+		var opt option.ClientOption
+
+		if serviceAccountJSON != "" {
+			opt = option.WithCredentialsJSON([]byte(serviceAccountJSON))
+		} else if serviceAccountPath != "" {
+			opt = option.WithCredentialsFile(serviceAccountPath)
+		} else {
+			initErr = errors.New("firebase credentials not provided (path or json)")
+			return
+		}
+
 		app, err := firebase.NewApp(context.Background(), nil, opt)
 		if err != nil {
 			initErr = err

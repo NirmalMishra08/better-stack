@@ -46,6 +46,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	GetUserMonitors(ctx context.Context, userID pgtype.UUID) ([]Monitor, error)
+	GetUserMonitorsWithStats(ctx context.Context, userID pgtype.UUID) ([]GetUserMonitorsWithStatsRow, error)
 	GetUserProfile(ctx context.Context, userID pgtype.UUID) (UserProfile, error)
 	GetUserSubscription(ctx context.Context, userID pgtype.UUID) (Subscription, error)
 	ToggleMonitor(ctx context.Context, arg ToggleMonitorParams) (Monitor, error)
@@ -53,6 +54,7 @@ type Querier interface {
 	UpdateMonitorAlertConfig(ctx context.Context, arg UpdateMonitorAlertConfigParams) (MonitorAlertConfig, error)
 	UpdateMonitorAlertState(ctx context.Context, arg UpdateMonitorAlertStateParams) error
 	UpdateMonitorStatus(ctx context.Context, arg UpdateMonitorStatusParams) (Monitor, error)
+	UpdateMonitorStatusAndFailures(ctx context.Context, arg UpdateMonitorStatusAndFailuresParams) (Monitor, error)
 	UpdatePremiumStatus(ctx context.Context, arg UpdatePremiumStatusParams) (UserProfile, error)
 	UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (Subscription, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error

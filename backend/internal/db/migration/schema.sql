@@ -59,6 +59,7 @@ CREATE TABLE monitors (
     last_status monitor_status DEFAULT 'unknown',
     last_alert_sent_at TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE,
+    consecutive_failures INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

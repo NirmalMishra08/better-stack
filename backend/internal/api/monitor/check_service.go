@@ -169,13 +169,35 @@ func (h *Handler) PerformMonitorCheck(
 	// Step 5: Update monitor status and check for status change
 	// -----------------------------------------
 	previousStatus := string(monitor.Status.MonitorStatus)
+	consecutiveFailures := monitor.ConsecutiveFailures.Int32
+	isActive := monitor.IsActive.Bool
 
-	_, err = h.store.UpdateMonitorStatus(ctx, db.UpdateMonitorStatusParams{
+	if status == "down" {
+		consecutiveFailures++
+		if consecutiveFailures >= 5 {
+			isActive = false
+			// Create deactivation alert
+			_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+				MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+				AlertType: "down",
+				Message:   fmt.Sprintf("⛔ Monitor %s deactivated after 5 consecutive failures. Last error: %s", monitor.Url, errorMsg),
+			})
+			if alertErr != nil {
+				fmt.Printf("Failed to create deactivation alert: %v\n", alertErr)
+			}
+		}
+	} else if status == "up" {
+		consecutiveFailures = 0
+	}
+
+	_, err = h.store.UpdateMonitorStatusAndFailures(ctx, db.UpdateMonitorStatusAndFailuresParams{
 		ID: monitor.ID,
 		Status: db.NullMonitorStatus{
 			MonitorStatus: db.MonitorStatus(status),
 			Valid:         true,
 		},
+		ConsecutiveFailures: pgtype.Int4{Int32: consecutiveFailures, Valid: true},
+		IsActive:            pgtype.Bool{Bool: isActive, Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -257,12 +279,31 @@ func (h *Handler) createErrorResponse(
 
 	// Update monitor status
 	previousStatus := string(monitor.Status.MonitorStatus)
-	_, err = h.store.UpdateMonitorStatus(ctx, db.UpdateMonitorStatusParams{
+	consecutiveFailures := monitor.ConsecutiveFailures.Int32
+	isActive := monitor.IsActive.Bool
+
+	consecutiveFailures++
+	if consecutiveFailures >= 5 {
+		isActive = false
+		// Create deactivation alert
+		_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+			MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+			AlertType: "down",
+			Message:   fmt.Sprintf("⛔ Monitor %s deactivated after 5 consecutive failures. Last error: %s", monitor.Url, errorMsg),
+		})
+		if alertErr != nil {
+			fmt.Printf("Failed to create deactivation alert: %v\n", alertErr)
+		}
+	}
+
+	_, err = h.store.UpdateMonitorStatusAndFailures(ctx, db.UpdateMonitorStatusAndFailuresParams{
 		ID: monitor.ID,
 		Status: db.NullMonitorStatus{
 			MonitorStatus: db.MonitorStatus(status),
 			Valid:         true,
 		},
+		ConsecutiveFailures: pgtype.Int4{Int32: consecutiveFailures, Valid: true},
+		IsActive:            pgtype.Bool{Bool: isActive, Valid: true},
 	})
 	if err != nil {
 		return nil, err
