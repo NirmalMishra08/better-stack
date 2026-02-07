@@ -19,7 +19,6 @@ apiClient.interceptors.request.use(
     try {
       const { getFirebaseToken } = await import('./auth');
       const token = await getFirebaseToken();
-      console.log('Firebase token:', token);
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -111,9 +110,11 @@ export interface MonitorLog {
   monitor_id: number;
   status_code: number | null;
   response_time: number | null;
-  status: string;
-  error_message: string | null;
-  created_at: string;
+  dns_ok: boolean | null;
+  ssl_ok: boolean | null;
+  content_ok: boolean | null;
+  screenshot_url: string | null;
+  checked_at: string;
 }
 
 export interface MonitorLogsResponse {
@@ -129,6 +130,15 @@ export interface MonitorLogsResponse {
 export interface ToggleMonitorRequest {
   id: number;
   is_active: boolean;
+}
+
+export interface UpdateMonitorRequest {
+  id: number;
+  url: string;
+  method?: string;
+  type?: string;
+  interval: number;
+  is_active?: boolean;
 }
 
 export interface AuthRequest {
@@ -198,6 +208,19 @@ export const authAPI = {
   },
 };
 
+export interface MonitorWithStats {
+  id: number;
+  user_id: string;
+  url: string;
+  type: string;
+  interval: number;
+  status: string;
+  is_active: boolean;
+  avg_response_time: string;
+  uptime_percentage: string;
+  last_check: string;
+}
+
 // Monitor API
 export const monitorAPI = {
   // Create a new monitor
@@ -209,6 +232,12 @@ export const monitorAPI = {
   // Get all monitors for the user
   getAllMonitors: async (): Promise<Monitor[]> => {
     const response = await apiClient.get('/monitor/get-all-monitors');
+    return response.data;
+  },
+
+  // Get all monitors with stats
+  getAllMonitorsWithStats: async (): Promise<MonitorWithStats[]> => {
+    const response = await apiClient.get('/monitor/monitors/stats');
     return response.data;
   },
 
@@ -252,6 +281,7 @@ export const monitorAPI = {
 
   // Toggle monitor active status
   toggleMonitor: async (id: number, isActive: boolean): Promise<Monitor> => {
+    console.log(id, isActive)
     const response = await apiClient.post('/monitor/toggle-monitor', {
       id,
       is_active: isActive,
@@ -259,9 +289,74 @@ export const monitorAPI = {
     return response.data;
   },
 
+  // Update a monitor
+  updateMonitor: async (data: UpdateMonitorRequest): Promise<Monitor> => {
+    const response = await apiClient.put('/monitor/update-monitor', data);
+    return response.data;
+  },
+
   // Delete a monitor
   deleteMonitor: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/monitor/delete-monitor/${id}`);
+    return response.data;
+  },
+};
+
+// Alert types
+export interface Alert {
+  id: number;
+  monitor_id: number;
+  url: string;
+  type: string; // 'up', 'down', 'slow', 'warning'
+  message: string;
+  timestamp: string;
+  status: string; // 'active', 'resolved'
+}
+
+export interface AlertContact {
+  id: number;
+  name: string;
+  email: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+// Alert API
+export const alertAPI = {
+  // Get recent alerts for the user
+  getRecentAlerts: async (limit?: number): Promise<Alert[]> => {
+    const response = await apiClient.get(`/alert/recent?limit=${limit || 50}`);
+    return response.data;
+  },
+
+  // Get user's alert contacts
+  getAlertContacts: async (): Promise<AlertContact[]> => {
+    const response = await apiClient.get('/alert/contacts');
+    return response.data;
+  },
+
+  // Create a new alert contact
+  createAlertContact: async (data: { name: string; email: string }): Promise<AlertContact> => {
+    const response = await apiClient.post('/alert/contacts', data);
+    return response.data;
+  },
+};
+
+// Analytics types
+export interface AnalyticsOverview {
+  total_monitors: number;
+  active_monitors: number;
+  uptime_percent: number;
+  avg_response_time: number;
+  alerts_today: number;
+  monitors_up: number;
+  monitors_down: number;
+}
+
+// Analytics API
+export const analyticsAPI = {
+  getOverview: async (): Promise<AnalyticsOverview> => {
+    const response = await apiClient.get('/analytics/overview');
     return response.data;
   },
 };

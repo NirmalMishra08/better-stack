@@ -5,85 +5,320 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+// ErrorType categorizes the type of monitoring error
+type ErrorType string
+
+const (
+	ErrorNone              ErrorType = ""
+	ErrorDNSFailed         ErrorType = "DNS_FAILED"
+	ErrorConnectionRefused ErrorType = "CONNECTION_REFUSED"
+	ErrorSSLError          ErrorType = "SSL_ERROR"
+	ErrorTimeout           ErrorType = "TIMEOUT"
+	ErrorHTTPError         ErrorType = "HTTP_ERROR"
+	ErrorUnknown           ErrorType = "UNKNOWN_ERROR"
+)
+
+func (h *Handler) PerformMonitorCheck(
+	ctx context.Context,
+	monitor db.Monitor,
+) (*TestURLResponse, error) {
+	start := time.Now()
+
+	// Parse the URL to get the host
+	parsedURL, err := url.Parse(monitor.Url)
+	if err != nil {
+		return h.createErrorResponse(ctx, monitor, 0, 0, false, false, ErrorUnknown, fmt.Sprintf("Invalid URL: %s", err.Error()))
+	}
+
+	host := parsedURL.Hostname()
+	isHTTPS := parsedURL.Scheme == "https"
+
+	// Step 1: DNS Resolution Check
+
+	dnsOk := true
+	_, dnsErr := net.LookupHost(host)
+	if dnsErr != nil {
+		dnsOk = false
+		responseTime := time.Since(start).Seconds() * 1000
+		return h.createErrorResponse(ctx, monitor, 0, responseTime, false, false, ErrorDNSFailed,
+			fmt.Sprintf("Domain does not exist or DNS lookup failed: %s", dnsErr.Error()))
+	}
 
 
-func (h *Handler) performMonitorCheck(ctx context.Context, monitor db.Monitor) (*TestURLResponse, error) {
+	// Step 2: SSL Certificate Check (for HTTPS)
+
+	sslOk := true
+	if isHTTPS {
+		port := parsedURL.Port()
+		if port == "" {
+			port = "443"
+		}
+		conn, sslErr := tls.DialWithDialer(&net.Dialer{Timeout: 10 * time.Second}, "tcp", host+":"+port, &tls.Config{
+			InsecureSkipVerify: false,
+		})
+		if sslErr != nil {
+			sslOk = false
+			// Don't fail entirely for SSL errors, but record it
+			if strings.Contains(sslErr.Error(), "certificate") {
+				responseTime := time.Since(start).Seconds() * 1000
+				return h.createErrorResponse(ctx, monitor, 0, responseTime, true, false, ErrorSSLError,
+					fmt.Sprintf("SSL certificate error: %s", sslErr.Error()))
+			}
+		} else {
+			conn.Close()
+		}
+	} else {
+		sslOk = false // HTTP doesn't have SSL
+	}
+
+	// -----------------------------------------
+	// Step 3: HTTP Request
+	// -----------------------------------------
 	client := &http.Client{
 		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
-			},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Allow up to 10 redirects
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			return nil
 		},
 	}
 
-	start := time.Now()
-	req, err := http.NewRequestWithContext(ctx, monitor.Method.String, monitor.Url, nil)
+	req, err := http.NewRequestWithContext(
+		ctx,
+		monitor.Method.String,
+		monitor.Url,
+		nil,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		responseTime := time.Since(start).Seconds() * 1000
+		return h.createErrorResponse(ctx, monitor, 0, responseTime, dnsOk, sslOk, ErrorUnknown,
+			fmt.Sprintf("Failed to create request: %s", err.Error()))
 	}
 
 	// Add common headers
-	req.Header.Set("User-Agent", "BetterUptime-Monitor/1.0")
-	req.Header.Set("Accept", "*/*")
+	req.Header.Set("User-Agent", "BetterUptime/1.0")
 
-	resp, err := client.Do(req)
-	responseTime := time.Since(start).Seconds() * 1000 // in milliseconds
+	resp, httpErr := client.Do(req)
+	responseTime := time.Since(start).Seconds() * 1000
 
 	var statusCode int32
-	var status string = "down"
+	var status string
 	var errorMsg string
-	var dnsOk bool = true
-	var sslOk bool = false
-	var screenshotUrl string
+	var errorType ErrorType
 
-	if err != nil {
+	if httpErr != nil {
 		statusCode = 0
 		status = "down"
-		errorMsg = err.Error()
-		dnsOk = false
+
+		// Categorize the error
+		if strings.Contains(httpErr.Error(), "connection refused") {
+			errorType = ErrorConnectionRefused
+			errorMsg = "Connection refused - server is not accepting connections"
+		} else if strings.Contains(httpErr.Error(), "timeout") || strings.Contains(httpErr.Error(), "deadline exceeded") {
+			errorType = ErrorTimeout
+			errorMsg = "Request timed out - server did not respond in time"
+		} else if strings.Contains(httpErr.Error(), "no such host") {
+			errorType = ErrorDNSFailed
+			errorMsg = "Domain does not exist"
+		} else {
+			errorType = ErrorUnknown
+			errorMsg = httpErr.Error()
+		}
 	} else {
 		defer resp.Body.Close()
 		statusCode = int32(resp.StatusCode)
 
-		// Check SSL
-		if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
-			sslOk = true
-		}
-
 		if statusCode >= 200 && statusCode < 400 {
 			status = "up"
+			errorType = ErrorNone
+			errorMsg = ""
 		} else {
 			status = "down"
+			errorType = ErrorHTTPError
 			errorMsg = fmt.Sprintf("HTTP %d - %s", statusCode, http.StatusText(int(statusCode)))
 		}
 	}
 
-	if status == "down" {
-		screenshotUrl, err = h.TakeScreenshot(ctx, monitor)
-		if err != nil {
-			fmt.Printf("Failed to take screenshot: %v\n", err)
-		}
-	}
-
-	// Save to monitor_logs
+	// -----------------------------------------
+	// Step 4: Save log
+	// -----------------------------------------
 	_, err = h.store.CreateMonitorLog(ctx, db.CreateMonitorLogParams{
 		MonitorID:    pgtype.Int4{Int32: monitor.ID, Valid: true},
 		StatusCode:   pgtype.Int4{Int32: statusCode, Valid: true},
 		ResponseTime: pgtype.Float8{Float64: responseTime, Valid: true},
 		DnsOk:        pgtype.Bool{Bool: dnsOk, Valid: true},
 		SslOk:        pgtype.Bool{Bool: sslOk, Valid: true},
-		ContentOk:    pgtype.Bool{Bool: true, Valid: true}, // Basic content check
-		ScreenshotUrl: pgtype.Text{String: screenshotUrl, Valid: screenshotUrl != ""},
+		ContentOk:    pgtype.Bool{Bool: status == "up", Valid: true},
 	})
 	if err != nil {
-		fmt.Printf("Failed to create monitor log: %v\n", err)
+		return nil, err
+	}
+
+	// -----------------------------------------
+	// Step 5: Update monitor status and check for status change
+	// -----------------------------------------
+	previousStatus := string(monitor.Status.MonitorStatus)
+	consecutiveFailures := monitor.ConsecutiveFailures.Int32
+	isActive := monitor.IsActive.Bool
+
+	if status == "down" {
+		consecutiveFailures++
+		if consecutiveFailures >= 5 {
+			isActive = false
+			// Create deactivation alert
+			_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+				MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+				AlertType: "down",
+				Message:   fmt.Sprintf("⛔ Monitor %s deactivated after 5 consecutive failures. Last error: %s", monitor.Url, errorMsg),
+			})
+			if alertErr != nil {
+				fmt.Printf("Failed to create deactivation alert: %v\n", alertErr)
+			}
+		}
+	} else if status == "up" {
+		consecutiveFailures = 0
+	}
+
+	_, err = h.store.UpdateMonitorStatusAndFailures(ctx, db.UpdateMonitorStatusAndFailuresParams{
+		ID: monitor.ID,
+		Status: db.NullMonitorStatus{
+			MonitorStatus: db.MonitorStatus(status),
+			Valid:         true,
+		},
+		ConsecutiveFailures: pgtype.Int4{Int32: consecutiveFailures, Valid: true},
+		IsActive:            pgtype.Bool{Bool: isActive, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// -----------------------------------------
+	// Step 6: Create alert if status changed to "down"
+	// -----------------------------------------
+	if status == "down" && previousStatus != "down" && previousStatus != "" {
+		// Create an alert for the status change
+		_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+			MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+			AlertType: "down",
+			Message:   fmt.Sprintf("Monitor %s is now DOWN. %s: %s", monitor.Url, errorType, errorMsg),
+		})
+		if alertErr != nil {
+			// Log the error but don't fail the check
+			fmt.Printf("Failed to create alert: %v\n", alertErr)
+		}
+
+		// Update the monitor's alert state
+		h.store.UpdateMonitorAlertState(ctx, db.UpdateMonitorAlertStateParams{
+			ID: monitor.ID,
+			LastStatus: db.NullMonitorStatus{
+				MonitorStatus: db.MonitorStatus(status),
+				Valid:         true,
+			},
+			LastAlertSentAt: pgtype.Timestamp{Time: time.Now(), Valid: true},
+		})
+	}
+
+	// Create alert when service comes back up
+	if status == "up" && previousStatus == "down" {
+		_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+			MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+			AlertType: "up",
+			Message:   fmt.Sprintf("Monitor %s is now UP. Status Code: %d, Response Time: %.0fms", monitor.Url, statusCode, responseTime),
+		})
+		if alertErr != nil {
+			fmt.Printf("Failed to create recovery alert: %v\n", alertErr)
+		}
+	}
+
+	return &TestURLResponse{
+		Url:          monitor.Url,
+		StatusCode:   statusCode,
+		ResponseTime: responseTime,
+		Status:       status,
+		DnsOk:        dnsOk,
+		SslOk:        sslOk,
+		Error:        errorMsg,
+	}, nil
+}
+
+// createErrorResponse is a helper to create error responses and log them
+func (h *Handler) createErrorResponse(
+	ctx context.Context,
+	monitor db.Monitor,
+	statusCode int32,
+	responseTime float64,
+	dnsOk, sslOk bool,
+	errorType ErrorType,
+	errorMsg string,
+) (*TestURLResponse, error) {
+	status := "down"
+
+	// Save log
+	_, err := h.store.CreateMonitorLog(ctx, db.CreateMonitorLogParams{
+		MonitorID:    pgtype.Int4{Int32: monitor.ID, Valid: true},
+		StatusCode:   pgtype.Int4{Int32: statusCode, Valid: true},
+		ResponseTime: pgtype.Float8{Float64: responseTime, Valid: true},
+		DnsOk:        pgtype.Bool{Bool: dnsOk, Valid: true},
+		SslOk:        pgtype.Bool{Bool: sslOk, Valid: true},
+		ContentOk:    pgtype.Bool{Bool: false, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Update monitor status
+	previousStatus := string(monitor.Status.MonitorStatus)
+	consecutiveFailures := monitor.ConsecutiveFailures.Int32
+	isActive := monitor.IsActive.Bool
+
+	consecutiveFailures++
+	if consecutiveFailures >= 5 {
+		isActive = false
+		// Create deactivation alert
+		_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+			MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+			AlertType: "down",
+			Message:   fmt.Sprintf("⛔ Monitor %s deactivated after 5 consecutive failures. Last error: %s", monitor.Url, errorMsg),
+		})
+		if alertErr != nil {
+			fmt.Printf("Failed to create deactivation alert: %v\n", alertErr)
+		}
+	}
+
+	_, err = h.store.UpdateMonitorStatusAndFailures(ctx, db.UpdateMonitorStatusAndFailuresParams{
+		ID: monitor.ID,
+		Status: db.NullMonitorStatus{
+			MonitorStatus: db.MonitorStatus(status),
+			Valid:         true,
+		},
+		ConsecutiveFailures: pgtype.Int4{Int32: consecutiveFailures, Valid: true},
+		IsActive:            pgtype.Bool{Bool: isActive, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Create alert if status changed
+	if previousStatus != "down" && previousStatus != "" {
+		_, alertErr := h.store.CreateAlert(ctx, db.CreateAlertParams{
+			MonitorID: pgtype.Int4{Int32: monitor.ID, Valid: true},
+			AlertType: "down",
+			Message:   fmt.Sprintf("Monitor %s is DOWN. %s: %s", monitor.Url, errorType, errorMsg),
+		})
+		if alertErr != nil {
+			fmt.Printf("Failed to create alert: %v\n", alertErr)
+		}
 	}
 
 	return &TestURLResponse{

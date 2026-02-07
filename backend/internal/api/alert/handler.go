@@ -5,7 +5,6 @@ import (
 	"better-uptime/common/routes"
 	"better-uptime/config"
 	db "better-uptime/internal/db/sqlc"
-	"go/token"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -16,9 +15,8 @@ type Handler struct {
 }
 
 type HandlerConfig struct {
-	Config     *config.Config
-	Store      db.Store
-	TokenMaker token.Token
+	Config *config.Config
+	Store  db.Store
 }
 
 func NewHandler(config *config.Config, store db.Store) *Handler {
@@ -34,6 +32,10 @@ func (h *Handler) Routes() *chi.Mux {
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.TokenMiddleware(h.store))
 
+		// Alert endpoints
+		r.Get("/recent", h.GetRecentAlerts)
+		r.Get("/contacts", h.GetAlertContacts)
+		r.Post("/contacts", h.CreateAlertContact)
 	})
 
 	return router

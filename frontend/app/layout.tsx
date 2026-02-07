@@ -17,6 +17,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Better Uptime - Advanced Website Monitoring & Alerting",
   description: "Professional website monitoring, uptime tracking, and instant alerting. Keep your services running 24/7 with our advanced monitoring platform.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+  other: {
+    "theme-color": "#1e3a8a",
+  }
 };
 
 const queryClient = new QueryClient();

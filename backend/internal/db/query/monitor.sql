@@ -26,13 +26,16 @@ SET
 WHERE id = $1 AND user_id = $8
 RETURNING *;
 
+
 -- name: DeleteMonitor :exec
 DELETE FROM monitors 
 WHERE id = $1 AND user_id = $2;
 
 -- name: ToggleMonitor :one
 UPDATE monitors 
-SET is_active = $3, updated_at = CURRENT_TIMESTAMP
+SET is_active = $3, 
+    consecutive_failures = CASE WHEN $3 = true THEN 0 ELSE consecutive_failures END,
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
 RETURNING *;
 
@@ -67,3 +70,31 @@ where user_id = $1 AND url = $2;
 
 -- name: GetMonitorsByInterval :many
 SELECT * FROM monitors WHERE is_active = true AND interval = $1;
+
+-- name: UpdateMonitorStatusAndFailures :one
+UPDATE monitors 
+SET status = $2, 
+    consecutive_failures = $3,
+    is_active = $4,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
+-- name: GetUserMonitorsWithStats :many
+SELECT 
+    m.id, 
+    m.user_id,
+    m.url, 
+    m.type, 
+    m.interval,
+    m.status, 
+    m.is_active, 
+    COALESCE(AVG(ml.response_time), 0)::float as avg_response_time,
+    COALESCE(SUM(CASE WHEN ml.status_code >= 200 AND ml.status_code < 400 THEN 1 ELSE 0 END), 0)::bigint as successful_checks,
+    COUNT(ml.id)::bigint as total_checks,
+    MAX(ml.checked_at) as last_check
+FROM monitors m
+LEFT JOIN monitor_logs ml ON m.id = ml.monitor_id
+WHERE m.user_id = $1
+GROUP BY m.id
+ORDER BY m.created_at DESC;

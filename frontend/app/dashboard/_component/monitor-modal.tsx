@@ -36,6 +36,7 @@ export default function CreateMonitorModal({ isOpen, onClose }: CreateMonitorMod
         type: form.type,
         interval: form.interval,
         is_active: form.is_active,
+        status: "unknown"
       });
 
       console.log(response)
