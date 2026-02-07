@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { alertAPI, type Alert as AlertType } from '@/lib/api';
 import {
     Bell,
     AlertTriangle,
@@ -20,76 +21,73 @@ import {
     Smartphone,
     Webhook,
     Slack,
-    MessageCircle
+    MessageCircle,
+    Loader2
 } from 'lucide-react';
+
+type AlertDisplay = {
+    id: number;
+    monitor: string;
+    url: string;
+    type: string;
+    severity: string;
+    message: string;
+    timestamp: string;
+    duration: string;
+    status: string;
+    notifications: string[];
+};
 
 export default function AlertsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSeverity, setFilterSeverity] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [alerts, setAlerts] = useState<AlertDisplay[]>([]);
+    const [alertsLoading, setAlertsLoading] = useState(true);
 
-    const alerts = [
-        {
-            id: 1,
-            monitor: 'API Endpoint',
-            url: 'https://api.example.com',
-            type: 'down',
-            severity: 'high',
-            message: 'Service is down - HTTP 500 error',
-            timestamp: '5 minutes ago',
-            duration: '2 minutes',
-            status: 'active',
-            notifications: ['email', 'slack']
-        },
-        {
-            id: 2,
-            monitor: 'Main Website',
-            url: 'https://example.com',
-            type: 'slow',
-            severity: 'medium',
-            message: 'Response time exceeded 2 seconds',
-            timestamp: '12 minutes ago',
-            duration: '5 minutes',
-            status: 'resolved',
-            notifications: ['email']
-        },
-        {
-            id: 3,
-            monitor: 'Database',
-            url: 'https://db.example.com',
-            type: 'up',
-            severity: 'low',
-            message: 'Service is back online',
-            timestamp: '1 hour ago',
-            duration: '0 seconds',
-            status: 'resolved',
-            notifications: ['email', 'slack']
-        },
-        {
-            id: 4,
-            monitor: 'SSL Certificate',
-            url: 'https://secure.example.com',
-            type: 'warning',
-            severity: 'medium',
-            message: 'SSL certificate expires in 7 days',
-            timestamp: '2 hours ago',
-            duration: '0 seconds',
-            status: 'active',
-            notifications: ['email', 'webhook']
-        },
-        {
-            id: 5,
-            monitor: 'CDN Status',
-            url: 'https://cdn.example.com',
-            type: 'down',
-            severity: 'high',
-            message: 'CDN service unavailable',
-            timestamp: '3 hours ago',
-            duration: '15 minutes',
-            status: 'resolved',
-            notifications: ['email', 'slack', 'webhook']
+    useEffect(() => {
+        const loadAlerts = async () => {
+            try {
+                const data = await alertAPI.getRecentAlerts(50);
+                setAlerts(data.map((a: AlertType) => ({
+                    id: a.id,
+                    monitor: a.url.replace(/^https?:\/\//, '').split('/')[0] || 'Monitor',
+                    url: a.url,
+                    type: a.type,
+                    severity: a.type === 'down' ? 'high' : a.type === 'slow' ? 'medium' : 'low',
+                    message: a.message,
+                    timestamp: formatTimestamp(a.timestamp),
+                    duration: '—',
+                    status: a.status || 'resolved',
+                    notifications: ['email'],
+                })));
+            } catch (e) {
+                console.error('Failed to load alerts:', e);
+                setAlerts([]);
+            } finally {
+                setAlertsLoading(false);
+            }
+        };
+        loadAlerts();
+    }, []);
+
+    const formatTimestamp = (timestamp: string): string => {
+        if (!timestamp) return '—';
+        try {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} days ago`;
+        } catch {
+            return timestamp;
         }
-    ];
+    };
 
     const getSeverityIcon = (severity: string) => {
         switch (severity) {
@@ -250,74 +248,81 @@ export default function AlertsPage() {
 
                 {/* Alerts List */}
                 <div className="p-6">
-                    <div className="space-y-4">
-                        {filteredAlerts.map((alert) => (
-                            <div key={alert.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start space-x-4">
-                                        <div className={`w-3 h-3 rounded-full mt-2 ${getStatusColor(alert.status)}`}></div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                                <h3 className="font-semibold text-white">{alert.monitor}</h3>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getSeverityColor(alert.severity)}`}>
-                                                    {alert.severity.toUpperCase()}
-                                                </span>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${alert.status === 'active' ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'
-                                                    }`}>
-                                                    {alert.status.toUpperCase()}
-                                                </span>
-                                            </div>
-
-                                            <p className="text-slate-300 mb-3">{alert.message}</p>
-
-                                            <div className="flex items-center space-x-6 text-sm text-slate-400">
-                                                <div className="flex items-center space-x-1">
-                                                    <Clock className="w-4 h-4" />
-                                                    <span>{alert.timestamp}</span>
+                    {alertsLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+                            <span className="ml-3 text-slate-400">Loading alerts...</span>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {filteredAlerts.map((alert) => (
+                                <div key={alert.id} className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:bg-slate-750 transition-colors">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start space-x-4">
+                                            <div className={`w-3 h-3 rounded-full mt-2 ${getStatusColor(alert.status)}`}></div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-3 mb-2">
+                                                    <h3 className="font-semibold text-white">{alert.monitor}</h3>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getSeverityColor(alert.severity)}`}>
+                                                        {alert.severity.toUpperCase()}
+                                                    </span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${alert.status === 'active' ? 'bg-red-900 text-red-300' : 'bg-green-900 text-green-300'
+                                                        }`}>
+                                                        {alert.status.toUpperCase()}
+                                                    </span>
                                                 </div>
-                                                <div className="flex items-center space-x-1">
-                                                    <Monitor className="w-4 h-4" />
-                                                    <span>{alert.url}</span>
-                                                </div>
-                                                {alert.duration !== '0 seconds' && (
+
+                                                <p className="text-slate-300 mb-3">{alert.message}</p>
+
+                                                <div className="flex items-center space-x-6 text-sm text-slate-400">
                                                     <div className="flex items-center space-x-1">
-                                                        <AlertTriangle className="w-4 h-4" />
-                                                        <span>Duration: {alert.duration}</span>
+                                                        <Clock className="w-4 h-4" />
+                                                        <span>{alert.timestamp}</span>
                                                     </div>
-                                                )}
-                                            </div>
-
-                                            <div className="flex items-center space-x-2 mt-3">
-                                                <span className="text-slate-400 text-sm">Notifications:</span>
-                                                <div className="flex items-center space-x-2">
-                                                    {alert.notifications.map((notification, index) => (
-                                                        <div key={index} className="flex items-center space-x-1 bg-slate-700 px-2 py-1 rounded">
-                                                            {getNotificationIcon(notification)}
-                                                            <span className="text-xs">{notification}</span>
+                                                    <div className="flex items-center space-x-1">
+                                                        <Monitor className="w-4 h-4" />
+                                                        <span>{alert.url}</span>
+                                                    </div>
+                                                    {alert.duration !== '0 seconds' && (
+                                                        <div className="flex items-center space-x-1">
+                                                            <AlertTriangle className="w-4 h-4" />
+                                                            <span>Duration: {alert.duration}</span>
                                                         </div>
-                                                    ))}
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center space-x-2 mt-3">
+                                                    <span className="text-slate-400 text-sm">Notifications:</span>
+                                                    <div className="flex items-center space-x-2">
+                                                        {alert.notifications.map((notification, index) => (
+                                                            <div key={index} className="flex items-center space-x-1 bg-slate-700 px-2 py-1 rounded">
+                                                                {getNotificationIcon(notification)}
+                                                                <span className="text-xs">{notification}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center space-x-2">
-                                        <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                            <Eye className="w-4 h-4" />
-                                        </button>
-                                        <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                            <Archive className="w-4 h-4" />
-                                        </button>
-                                        <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
-                                            <MoreHorizontal className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center space-x-2">
+                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                <Archive className="w-4 h-4" />
+                                            </button>
+                                            <button className="p-2 hover:bg-slate-700 rounded-lg transition-colors">
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
 
-                    {filteredAlerts.length === 0 && (
+                    {!alertsLoading && filteredAlerts.length === 0 && (
                         <div className="text-center py-12">
                             <Bell className="w-16 h-16 text-slate-500 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-slate-300 mb-2">No alerts found</h3>

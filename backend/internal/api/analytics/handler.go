@@ -1,4 +1,4 @@
-package alert
+package analytics
 
 import (
 	"better-uptime/common/middleware"
@@ -14,11 +14,6 @@ type Handler struct {
 	store  db.Store
 }
 
-type HandlerConfig struct {
-	Config *config.Config
-	Store  db.Store
-}
-
 func NewHandler(config *config.Config, store db.Store) *Handler {
 	return &Handler{
 		config: config,
@@ -32,10 +27,7 @@ func (h *Handler) Routes() *chi.Mux {
 	router.Group(func(r chi.Router) {
 		r.Use(middleware.TokenMiddleware(h.store))
 
-		// Alert endpoints
-		r.Get("/recent", h.GetRecentAlerts)
-		r.Get("/contacts", h.GetAlertContacts)
-		r.Post("/contacts", h.CreateAlertContact)
+		r.Get("/overview", h.GetOverview)
 	})
 
 	return router

@@ -112,7 +112,7 @@ export interface MonitorLog {
   response_time: number | null;
   status: string;
   error_message: string | null;
-  created_at: string;
+  checked_at: string;
 }
 
 export interface MonitorLogsResponse {
@@ -261,6 +261,65 @@ export const monitorAPI = {
   // Delete a monitor
   deleteMonitor: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.delete(`/monitor/delete-monitor/${id}`);
+    return response.data;
+  },
+};
+
+// Alert types
+export interface Alert {
+  id: number;
+  monitor_id: number;
+  url: string;
+  type: string; // 'up', 'down', 'slow', 'warning'
+  message: string;
+  timestamp: string;
+  status: string; // 'active', 'resolved'
+}
+
+export interface AlertContact {
+  id: number;
+  name: string;
+  email: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+// Alert API
+export const alertAPI = {
+  // Get recent alerts for the user
+  getRecentAlerts: async (limit?: number): Promise<Alert[]> => {
+    const response = await apiClient.get(`/alert/recent?limit=${limit || 50}`);
+    return response.data;
+  },
+
+  // Get user's alert contacts
+  getAlertContacts: async (): Promise<AlertContact[]> => {
+    const response = await apiClient.get('/alert/contacts');
+    return response.data;
+  },
+
+  // Create a new alert contact
+  createAlertContact: async (data: { name: string; email: string }): Promise<AlertContact> => {
+    const response = await apiClient.post('/alert/contacts', data);
+    return response.data;
+  },
+};
+
+// Analytics types
+export interface AnalyticsOverview {
+  total_monitors: number;
+  active_monitors: number;
+  uptime_percent: number;
+  avg_response_time: number;
+  alerts_today: number;
+  monitors_up: number;
+  monitors_down: number;
+}
+
+// Analytics API
+export const analyticsAPI = {
+  getOverview: async (): Promise<AnalyticsOverview> => {
+    const response = await apiClient.get('/analytics/overview');
     return response.data;
   },
 };

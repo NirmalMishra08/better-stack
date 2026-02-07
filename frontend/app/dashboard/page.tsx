@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { monitorAPI, type Monitor as MonitorType } from '@/lib/api';
+import { monitorAPI, alertAPI, analyticsAPI, type Monitor as MonitorType, type AnalyticsOverview, type MonitorLog } from '@/lib/api';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import {
     Monitor,
     Activity,
@@ -59,18 +60,86 @@ export default function Dashboard() {
         const loadMonitors = async () => {
             try {
                 const list = await monitorAPI.getAllMonitors();
-                setMonitoringData((list as MonitorType[]).map((m) => ({
-                    id: m.id,
-                    name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
-                    url: m.url,
-                    status: typeof m.status === 'string' ? m.status : (m.status as string) || 'unknown',
-                    uptime: '—',
-                    responseTime: '—',
-                    lastCheck: '—',
-                    location: '—',
-                })));
 
-                console.log(monitoringData)
+                // Fetch metrics for each monitor
+                const monitorsWithStats = await Promise.all(
+                    (list as MonitorType[]).map(async (m) => {
+                        // Handle status which may come as object {monitor_status: string, valid: boolean}
+                        let statusValue = 'unknown';
+                        if (typeof m.status === 'string') {
+                            statusValue = m.status;
+                        } else if (m.status && typeof m.status === 'object') {
+                            const statusObj = m.status as { monitor_status?: string; valid?: boolean };
+                            statusValue = statusObj.monitor_status || 'unknown';
+                        }
+
+                        // Fetch logs for this monitor to calculate stats
+                        let uptime = '—';
+                        let responseTime = '—';
+                        let lastCheck = '—';
+
+                        try {
+                            const logsResponse = await monitorAPI.getMonitorLogs(m.id, { limit: 50 });
+                            if (logsResponse.logs && logsResponse.logs.length > 0) {
+                                // Calculate uptime
+                                const successfulChecks = logsResponse.logs.filter(
+                                    log => log.status_code && log.status_code >= 200 && log.status_code < 400
+                                ).length;
+                                const uptimePercent = (successfulChecks / logsResponse.logs.length) * 100;
+                                uptime = `${uptimePercent.toFixed(1)}%`;
+
+                                // Calculate avg response time
+                                const responseTimes = logsResponse.logs
+                                    .filter(log => log.response_time && log.response_time > 0)
+                                    .map(log => log.response_time!);
+                                if (responseTimes.length > 0) {
+                                    const avgResponse = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+                                    responseTime = `${avgResponse.toFixed(0)}ms`;
+                                }
+
+                                // Last check time - handle UTC timestamp from database
+                                const lastLog = logsResponse.logs[0];
+                                if (lastLog.checked_at) {
+                                    // Append 'Z' to treat as UTC if not already present
+                                    const timestampStr = lastLog.checked_at.endsWith('Z')
+                                        ? lastLog.checked_at
+                                        : lastLog.checked_at + 'Z';
+                                    const checkDate = new Date(timestampStr);
+                                    const now = new Date();
+                                    const diffMs = now.getTime() - checkDate.getTime();
+                                    const diffMins = Math.floor(diffMs / 60000);
+                                    const diffHours = Math.floor(diffMins / 60);
+                                    const diffDays = Math.floor(diffHours / 24);
+
+                                    if (diffDays > 0) {
+                                        lastCheck = `${diffDays}d ago`;
+                                    } else if (diffHours > 0) {
+                                        lastCheck = `${diffHours}h ago`;
+                                    } else if (diffMins > 0) {
+                                        lastCheck = `${diffMins}m ago`;
+                                    } else {
+                                        lastCheck = 'Just now';
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error(`Failed to fetch logs for monitor ${m.id}:`, e);
+                        }
+
+                        return {
+                            id: m.id,
+                            name: m.url.replace(/^https?:\/\//, '').split('/')[0] || m.url,
+                            url: m.url,
+                            status: statusValue,
+                            uptime,
+                            responseTime,
+                            lastCheck,
+                            location: 'Global',
+                        };
+                    })
+                );
+
+                setMonitoringData(monitorsWithStats);
             } catch (e) {
                 console.error('Failed to load monitors:', e);
             } finally {
@@ -80,40 +149,128 @@ export default function Dashboard() {
         loadMonitors();
     }, []);
 
-    console.log(monitoringData)
+    // Chart data state
+    interface ChartDataPoint {
+        time: string;
+        uptime: number;
+        responseTime: number;
+    }
+    const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+    const [chartLoading, setChartLoading] = useState(true);
 
-    const recentAlerts = [
-        {
-            id: 1,
-            type: 'down',
-            monitor: 'API Endpoint',
-            message: 'Service is down - HTTP 500 error',
-            time: '5 minutes ago',
-            severity: 'high'
-        },
-        {
-            id: 2,
-            type: 'slow',
-            monitor: 'Main Website',
-            message: 'Response time exceeded 2 seconds',
-            time: '12 minutes ago',
-            severity: 'medium'
-        },
-        {
-            id: 3,
-            type: 'up',
-            monitor: 'Database',
-            message: 'Service is back online',
-            time: '1 hour ago',
-            severity: 'low'
+    // Fetch monitor logs for charts
+    useEffect(() => {
+        const fetchChartData = async () => {
+            try {
+                const monitors = await monitorAPI.getAllMonitors();
+                if (monitors.length === 0) {
+                    setChartLoading(false);
+                    return;
+                }
+
+                // Get logs from the first active monitor for the chart
+                const firstMonitor = monitors[0];
+                const logsResponse = await monitorAPI.getMonitorLogs(firstMonitor.id, { limit: 24 });
+
+                if (logsResponse.logs && logsResponse.logs.length > 0) {
+                    const data = logsResponse.logs.reverse().map((log: MonitorLog) => {
+                        const isUp = log.status_code !== null && log.status_code >= 200 && log.status_code < 400;
+                        const logDate = new Date(log.checked_at);
+                        const timeLabel = logDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', timeZone: 'Asia/Kolkata' });
+                        return {
+                            time: timeLabel,
+                            uptime: isUp ? 100 : 0,
+                            responseTime: log.response_time || 0,
+                        };
+                    });
+                    setChartData(data);
+                }
+            } catch (e) {
+                console.error('Failed to load chart data:', e);
+            } finally {
+                setChartLoading(false);
+            }
+        };
+        fetchChartData();
+    }, []);
+
+    // Fetch recent alerts from backend
+    const [recentAlerts, setRecentAlerts] = useState<Array<{
+        id: number;
+        type: string;
+        monitor: string;
+        message: string;
+        time: string;
+        severity: string;
+    }>>([]);
+    const [alertsCount, setAlertsCount] = useState(0);
+
+    useEffect(() => {
+        const loadAlerts = async () => {
+            try {
+                const data = await alertAPI.getRecentAlerts(10);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const todayAlerts = data.filter(a => {
+                    const alertDate = new Date(a.timestamp);
+                    return alertDate >= today;
+                });
+                setAlertsCount(todayAlerts.length);
+
+                setRecentAlerts(data.slice(0, 5).map(a => ({
+                    id: a.id,
+                    type: a.type,
+                    monitor: a.url.replace(/^https?:\/\//, '').split('/')[0] || 'Monitor',
+                    message: a.message,
+                    time: formatTimestamp(a.timestamp),
+                    severity: a.type === 'down' ? 'high' : a.type === 'slow' ? 'medium' : 'low',
+                })));
+            } catch (e) {
+                console.error('Failed to load alerts:', e);
+            }
+        };
+        loadAlerts();
+    }, []);
+
+    const formatTimestamp = (timestamp: string): string => {
+        if (!timestamp) return '—';
+        try {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} days ago`;
+        } catch {
+            return timestamp;
         }
-    ];
+    };
+
+    // Fetch analytics overview from backend
+    const [analytics, setAnalytics] = useState<AnalyticsOverview | null>(null);
+
+    useEffect(() => {
+        const loadAnalytics = async () => {
+            try {
+                const data = await analyticsAPI.getOverview();
+                setAnalytics(data);
+            } catch (e) {
+                console.error('Failed to load analytics:', e);
+            }
+        };
+        loadAnalytics();
+    }, []);
 
     const stats = [
-        { label: 'Total Monitors', value: String(monitoringData.length), change: '', trend: 'up' as const },
-        { label: 'Uptime', value: '—', change: '', trend: 'up' as const },
-        { label: 'Avg Response', value: '—', change: '', trend: 'up' as const },
-        { label: 'Alerts Today', value: '—', change: '', trend: 'down' as const }
+        { label: 'Total Monitors', value: analytics ? String(analytics.total_monitors) : String(monitoringData.length), change: '', trend: 'up' as const },
+        { label: 'Uptime', value: analytics ? `${analytics.uptime_percent.toFixed(1)}%` : '—', change: '', trend: 'up' as const },
+        { label: 'Avg Response', value: analytics ? `${analytics.avg_response_time.toFixed(0)}ms` : '—', change: '', trend: 'up' as const },
+        { label: 'Alerts Today', value: analytics ? String(analytics.alerts_today) : String(alertsCount), change: '', trend: (analytics?.alerts_today || alertsCount) > 0 ? 'down' as const : 'up' as const }
     ];
 
     return (
@@ -180,40 +337,72 @@ export default function Dashboard() {
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold">Uptime Trend</h3>
-                                <div className="flex items-center space-x-2">
-                                    <button className="p-1 hover:bg-slate-700 rounded">
-                                        <RefreshCw className="w-4 h-4" />
-                                    </button>
-                                    <button className="p-1 hover:bg-slate-700 rounded">
-                                        <MoreHorizontal className="w-4 h-4" />
-                                    </button>
-                                </div>
                             </div>
-                            <div className="h-64 bg-slate-700 rounded-lg flex items-center justify-center">
-                                <div className="text-center">
-                                    <BarChart3 className="w-12 h-12 text-slate-500 mx-auto mb-2" />
-                                    <p className="text-slate-400">Chart will be rendered here</p>
-                                </div>
+                            <div className="h-64">
+                                {chartLoading ? (
+                                    <div className="h-full flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400"></div>
+                                    </div>
+                                ) : chartData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={chartData}>
+                                            <defs>
+                                                <linearGradient id="uptimeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
+                                            <YAxis stroke="#64748b" fontSize={12} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                                                labelStyle={{ color: '#94a3b8' }}
+                                                formatter={(value) => [`${value ?? 0}%`, 'Uptime']}
+                                            />
+                                            <Area type="monotone" dataKey="uptime" stroke="#22c55e" fill="url(#uptimeGradient)" strokeWidth={2} />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400">
+                                        <div className="text-center">
+                                            <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                            <p>No monitoring data yet</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold">Response Time</h3>
-                                <div className="flex items-center space-x-2">
-                                    <button className="p-1 hover:bg-slate-700 rounded">
-                                        <RefreshCw className="w-4 h-4" />
-                                    </button>
-                                    <button className="p-1 hover:bg-slate-700 rounded">
-                                        <MoreHorizontal className="w-4 h-4" />
-                                    </button>
-                                </div>
                             </div>
-                            <div className="h-64 bg-slate-700 rounded-lg flex items-center justify-center">
-                                <div className="text-center">
-                                    <Activity className="w-12 h-12 text-slate-500 mx-auto mb-2" />
-                                    <p className="text-slate-400">Response time chart</p>
-                                </div>
+                            <div className="h-64">
+                                {chartLoading ? (
+                                    <div className="h-full flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+                                    </div>
+                                ) : chartData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={chartData}>
+                                            <XAxis dataKey="time" stroke="#64748b" fontSize={12} />
+                                            <YAxis stroke="#64748b" fontSize={12} tickFormatter={(v) => `${v}ms`} />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                                                labelStyle={{ color: '#94a3b8' }}
+                                                formatter={(value) => [`${Number(value ?? 0).toFixed(0)}ms`, 'Response Time']}
+                                            />
+                                            <Line type="monotone" dataKey="responseTime" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-slate-400">
+                                        <div className="text-center">
+                                            <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                            <p>No response time data yet</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

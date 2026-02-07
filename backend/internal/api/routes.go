@@ -12,7 +12,8 @@ func (app *Server) routes() *chi.Mux {
 	router.Route("/v1", func(r chi.Router) {
 		r.Mount("/auth", app.authHandler.Routes())
 		r.Mount("/monitor", app.monitorHandler.Routes())
-		
+		r.Mount("/alert", app.alertHandler.Routes())
+		r.Mount("/analytics", app.analyticsHandler.Routes())
 	})
 
 	return router
