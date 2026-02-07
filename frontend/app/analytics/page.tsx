@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { logout } from '@/lib/auth';
 import {
     Monitor,
     BarChart3,
@@ -27,6 +29,7 @@ type User = {
 }
 
 export default function AnalyticsPage() {
+    const router = useRouter();
     const [isModalOpen, setModalOpen] = useState(false);
     const [analytics, setAnalytics] = useState<AnalyticsOverview | null>(null);
     const [loading, setLoading] = useState(true);
@@ -60,9 +63,13 @@ export default function AnalyticsPage() {
         fetchData();
     }, []);
 
-    const handleLogout = () => {
-        console.log("Logging out...");
-        setModalOpen(false);
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Failed to logout:', error);
+        }
     }
 
     if (isLoading) {

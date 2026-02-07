@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { logout } from '@/lib/auth';
 import {
     Monitor,
     BarChart3,
@@ -31,12 +33,16 @@ export default function SettingsPage() {
     const [isModalOpen, setModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
     const [saved, setSaved] = useState(false);
-
     const { data: user, isLoading } = useUser();
+    const router = useRouter();
 
-    const handleLogout = () => {
-        console.log("Logging out...");
-        setModalOpen(false);
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Failed to logout:', error);
+        }
     }
 
     const handleSave = () => {

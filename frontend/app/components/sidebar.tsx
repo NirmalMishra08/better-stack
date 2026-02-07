@@ -20,8 +20,8 @@ const Sidebar = () => {
                     <button
                         onClick={() => {
                             setActiveTab("overview");
-                            router.prefetch('/overview');
-                            router.push("/overview");
+                            router.prefetch('/dashboard');
+                            router.push("/dashboard");
                         }}
                         className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${activeTab === 'overview' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'
                             }`}
@@ -41,7 +41,7 @@ const Sidebar = () => {
                         <span>Monitors</span>
                     </button>
                     <button
-                        onClick={() =>{
+                        onClick={() => {
                             setActiveTab("alerts");
                             router.push('/alerts');
                         }}
@@ -54,7 +54,7 @@ const Sidebar = () => {
                     <button
                         onClick={() => {
                             setActiveTab("analytics");
-                            router.prefetch('/analytics');
+                            router.push('/analytics');
                         }}
                         className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${activeTab === 'analytics' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'
                             }`}
@@ -65,6 +65,7 @@ const Sidebar = () => {
                     <button
                         onClick={() => {
                             setActiveTab("settings");
+                            router.push("/settings");
                         }}
                         className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'
                             }`}

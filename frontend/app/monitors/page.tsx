@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { logout } from '@/lib/auth';
 import {
     Monitor,
     Plus,
@@ -56,6 +58,7 @@ export type MonitorDisplay = {
 };
 
 export default function MonitorsPage() {
+    const router = useRouter();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [isModalOpen, setModalOpen] = useState(false);
@@ -288,9 +291,13 @@ export default function MonitorsPage() {
         window.URL.revokeObjectURL(url);
     };
 
-    const handleLogout = () => {
-        console.log("Logging out...");
-        setModalOpen(false);
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/login');
+        } catch (error) {
+            console.error('Failed to logout:', error);
+        }
     }
 
     const handleChangeActive = async (id: number, currentStatus: boolean) => {
