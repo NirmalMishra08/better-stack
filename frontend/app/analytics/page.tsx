@@ -11,7 +11,6 @@ import {
     Bell,
     Settings,
     TrendingUp,
-    TrendingDown,
     Clock,
     Activity,
     CheckCircle,
@@ -21,8 +20,8 @@ import {
 import { useUser } from '../hooks/useUser';
 import LogoutModal from "@/app/dashboard/_component/logout-modal";
 import Spinner from '../components/spinner';
-import { monitorAPI, analyticsAPI, type AnalyticsOverview } from '@/lib/api';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { analyticsAPI, type AnalyticsOverview } from '@/lib/api';
+import { AreaChart, Area, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 
 type User = {
     photoURL: string

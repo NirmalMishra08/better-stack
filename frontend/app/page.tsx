@@ -8,17 +8,11 @@ import {
   BarChart3,
   Bell,
   Globe,
-  CheckCircle,
   ArrowRight,
   Play,
   Star,
-  Users,
-  Clock,
-  TrendingUp,
   Smartphone,
-  Mail,
-  Phone,
-  MapPin
+  Mail
 } from 'lucide-react';
 
 export default function Home() {
@@ -258,7 +252,7 @@ export default function Home() {
                   ))}
                 </div>
                 <p className="text-white/90 mb-6 italic text-lg leading-relaxed">
-                  "{testimonial.content}"
+                  &quot;{testimonial.content}&quot;
                 </p>
                 <div>
                   <div className="font-semibold text-white text-lg">

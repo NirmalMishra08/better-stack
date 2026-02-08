@@ -33,8 +33,8 @@ func ReadJsonAndValidate(w http.ResponseWriter, r *http.Request, data any) error
 
 // readJsonFromBody reads JSON from the request body
 func readJsonFromBody(w http.ResponseWriter, r *http.Request, data any) error {
-	// TODO - revert to 1 MB
-	maxBytes := 10 << 20 // one megabyte
+	// Reverted to 1 MB
+	maxBytes := 1 << 20 // one megabyte
 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 

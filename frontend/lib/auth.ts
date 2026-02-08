@@ -1,4 +1,4 @@
-import { onAuthStateChanged, User as FirebaseUser, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from './firebase';
 import { authAPI } from './api';
 
@@ -58,18 +58,19 @@ export const loginWithBackend = async (firebaseToken: string, userData?: {
     setFirebaseToken(firebaseToken);
     const response = await authAPI.login(firebaseToken, userData);
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Backend login error:', error);
 
     // If backend login fails, clear the token
     clearFirebaseToken();
 
     // Re-throw with more context
-    if (error.response) {
+    const axiosError = error as { response?: { data?: { error?: string; message?: string } }; request?: unknown };
+    if (axiosError.response) {
       // Backend returned an error response
-      const backendError = error.response.data?.error || error.response.data?.message || 'Backend authentication failed';
+      const backendError = axiosError.response.data?.error || axiosError.response.data?.message || 'Backend authentication failed';
       throw new Error(backendError);
-    } else if (error.request) {
+    } else if (axiosError.request) {
       // Request was made but no response received
       throw new Error('Cannot connect to server. Please check if the backend is running.');
     } else {

@@ -51,9 +51,9 @@ export default function CreateMonitorModal({ isOpen, onClose }: CreateMonitorMod
         interval: 60,
         is_active: true,
       });
-    } catch (error: any) {
-      const msg = error.response?.data?.error || error.message || "Failed to create monitor";
-      toast.error(msg);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'response' in error ? (error as { response: { data: { error: string } } }).response?.data?.error : 'Failed to create monitor';
+      toast.error(errorMessage || 'Failed to create monitor');
     } finally {
       setLoading(false);
     }

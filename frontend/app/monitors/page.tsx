@@ -9,14 +9,10 @@ import {
     Monitor,
     Plus,
     Search,
-    Filter,
-    MoreHorizontal,
     Play,
     Pause,
     Edit,
-    Trash2,
     Eye,
-    ExternalLink,
     Globe,
     Clock,
     AlertTriangle,
@@ -35,12 +31,8 @@ import {
 import { useUser } from '../hooks/useUser';
 import LogoutModal from "@/app/dashboard/_component/logout-modal"
 import Spinner from '../components/spinner';
-import { monitorAPI, type Monitor as MonitorType, type MonitorLog } from '@/lib/api';
+import { monitorAPI, type MonitorLog } from '@/lib/api';
 
-
-type User = {
-    photoURL: string
-}
 
 export type MonitorDisplay = {
     id: number;

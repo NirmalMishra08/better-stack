@@ -1,62 +1,39 @@
+version: "3.9"
+
 services:
   app:
     build: .
+    container_name: betteruptime-backend
     ports:
       - "8080:8080"
     environment:
-      - POSTGRES_CONNECTION=postgresql://postgres:postgres@betteruptime-postgres:5432/betteruptime?sslmode=disable
-      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
-      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
-      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      POSTGRES_CONNECTION: postgresql://uptime_user:uptime_pass@db:5432/betteruptime?sslmode=disable
     depends_on:
-      - betteruptime-postgres
+      - db
     restart: unless-stopped
-    networks:
-      - better-uptime-network
+    deploy:
+      resources:
+        limits:
+          memory: 400M
 
-  betteruptime-postgres:
+  db:
     image: postgres:15-alpine
+    container_name: betteruptime-postgres
     environment:
-      - POSTGRES_DB=betteruptime
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: betteruptime
+      POSTGRES_USER: uptime_user
+      POSTGRES_PASSWORD: uptime_pass
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/migrations:/docker-entrypoint-initdb.d
-    networks:
-      - better-uptime-network
     restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - better-uptime-network
-    restart: unless-stopped
-
-  prometheus:
-    image: prom/prometheus
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-
-  blackbox:
-    image: prom/blackbox-exporter
-    ports:
-      - "9115:9115"
-    volumes:
-      - ./blackbox.yml:/etc/blackbox_exporter/config.yml
-    command:
-      - "--config.file=/etc/blackbox_exporter/config.yml"
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c max_connections=50
 
 volumes:
   postgres_data:
-
-
-networks:
-  better-uptime-network:
-    driver: bridge

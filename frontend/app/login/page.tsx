@@ -71,11 +71,12 @@ export default function LoginPage() {
         });
         toast.success(isLogin ? 'Logged in successfully!' : 'Account created successfully!');
         router.push('/dashboard');
-      } catch (backendError: any) {
+      } catch (backendError: unknown) {
         // If backend fails but Firebase worked, show specific error
         console.error('Backend login failed:', backendError);
-        if (backendError.message?.includes('firebase auth client not initialized') ||
-          backendError.message?.includes('authentication service not configured')) {
+        const errorMsg = backendError instanceof Error ? backendError.message : '';
+        if (errorMsg?.includes('firebase auth client not initialized') ||
+          errorMsg?.includes('authentication service not configured')) {
           toast.error('Backend authentication service is not configured. Using test mode.');
           // Still redirect to dashboard as Firebase auth succeeded
           router.push('/dashboard');
@@ -83,42 +84,43 @@ export default function LoginPage() {
           throw backendError; // Re-throw to be caught by outer catch
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auth error:', error);
       let errorMessage = 'An error occurred';
+      const firebaseError = error as { code?: string; message?: string };
 
-      if (error.code === 'auth/user-not-found') {
+      if (firebaseError.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email';
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (firebaseError.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password';
-      } else if (error.code === 'auth/email-already-in-use') {
+      } else if (firebaseError.code === 'auth/email-already-in-use') {
         errorMessage = 'Email already in use';
-      } else if (error.code === 'auth/weak-password') {
+      } else if (firebaseError.code === 'auth/weak-password') {
         errorMessage = 'Password should be at least 6 characters';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (firebaseError.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/network-request-failed') {
+      } else if (firebaseError.code === 'auth/network-request-failed') {
         errorMessage = 'Network error. Please check your connection.';
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (firebaseError.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed attempts. Please try again later.';
-      } else if (error.code === 'auth/operation-not-allowed') {
+      } else if (firebaseError.code === 'auth/operation-not-allowed') {
         errorMessage = 'Email/Password authentication is not enabled. Please contact support.';
-      } else if (error.code === 'auth/invalid-api-key') {
+      } else if (firebaseError.code === 'auth/invalid-api-key') {
         errorMessage = 'Invalid Firebase configuration. Please contact support.';
-      } else if (error.code === 'auth/app-not-authorized') {
+      } else if (firebaseError.code === 'auth/app-not-authorized') {
         errorMessage = 'Firebase app is not authorized. Please check Firebase Console settings.';
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if ((error as { response?: { data?: { error?: string } } }).response?.data?.error) {
+        errorMessage = (error as { response: { data: { error: string } } }).response.data.error;
+      } else if ((error as { message?: string }).message) {
+        errorMessage = (error as { message: string }).message;
       }
 
       // Log full error for debugging
       console.error('Full error object:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data,
+        code: firebaseError.code,
+        message: firebaseError.message,
+        stack: (error as Error).stack,
+        response: (error as { response?: unknown }).response,
       });
 
       toast.error(errorMessage);
@@ -133,16 +135,17 @@ export default function LoginPage() {
       await signInWithGoogle();
       toast.success('Signed in with Google successfully!');
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google sign-in error:', error);
       let errorMessage = 'Failed to sign in with Google';
+      const firebaseError = error as { code?: string; message?: string };
 
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (firebaseError.code === 'auth/popup-closed-by-user') {
         errorMessage = 'Sign-in popup was closed';
-      } else if (error.code === 'auth/popup-blocked') {
+      } else if (firebaseError.code === 'auth/popup-blocked') {
         errorMessage = 'Popup was blocked. Please allow popups for this site';
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (firebaseError.message) {
+        errorMessage = firebaseError.message;
       }
 
       toast.error(errorMessage);
@@ -341,7 +344,7 @@ export default function LoginPage() {
               >
                 {isLogin ? (
                   <>
-                    Don't have an account?{' '}
+                    Don&apos;t have an account?{' '}
                     <span className="text-indigo-400 font-semibold">Sign up</span>
                   </>
                 ) : (
