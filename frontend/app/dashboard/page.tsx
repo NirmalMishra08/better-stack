@@ -1,46 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { monitorAPI, alertAPI, analyticsAPI, type Monitor as MonitorType, type AnalyticsOverview, type MonitorLog } from '@/lib/api';
+import { monitorAPI, alertAPI, analyticsAPI, type AnalyticsOverview, type MonitorLog } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import {
-    Monitor,
     Activity,
-    AlertTriangle,
-    CheckCircle,
-    Clock,
-    Globe,
-    Settings,
     Bell,
     Search,
-    Plus,
     TrendingUp,
     TrendingDown,
     BarChart3,
-    PieChart,
-    Zap,
-    Shield,
-    Users,
-    Calendar,
-    Filter,
     Download,
     MoreHorizontal,
-    Play,
-    Pause,
-    RefreshCw,
     Eye,
-    Edit,
-    Trash2,
-    ExternalLink
+    Edit
 } from 'lucide-react';
 import NewMonitorButton from './_component/NewMonitorButton';
-import { useRouter } from 'next/navigation';
 import Sidebar from '../components/sidebar';
-import { isAuthenticated } from '@/lib/auth';
 
 export default function Dashboard() {
-    const [activeTab, setActiveTab] = useState('overview');
-    const router = useRouter();
 
     const [monitoringData, setMonitoringData] = useState<Array<{
         id: number;
@@ -56,7 +34,6 @@ export default function Dashboard() {
 
     const [monitorsLoading, setMonitorsLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
-    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     // Download monitors as CSV
     const downloadMonitorsCSV = () => {
@@ -93,7 +70,7 @@ export default function Dashboard() {
 
                 // Fetch metrics for each monitor
                 const monitorsWithStats = await Promise.all(
-                    (list as MonitorType[]).map(async (m) => {
+                    list.map(async (m) => {
                         // Handle status which may come as object {monitor_status: string, valid: boolean}
                         let statusValue = 'unknown';
                         if (typeof m.status === 'string') {

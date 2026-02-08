@@ -5,8 +5,6 @@ import { alertAPI, type Alert as AlertType } from '@/lib/api';
 import {
     Bell,
     AlertTriangle,
-    CheckCircle,
-    XCircle,
     Clock,
     Filter,
     Search,
@@ -16,9 +14,7 @@ import {
     BarChart3,
     Eye,
     Archive,
-    Trash2,
     Mail,
-    Smartphone,
     Webhook,
     Slack,
     MessageCircle,
@@ -89,18 +85,7 @@ export default function AlertsPage() {
         }
     };
 
-    const getSeverityIcon = (severity: string) => {
-        switch (severity) {
-            case 'high':
-                return <XCircle className="w-5 h-5 text-red-400" />;
-            case 'medium':
-                return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
-            case 'low':
-                return <CheckCircle className="w-5 h-5 text-green-400" />;
-            default:
-                return <Clock className="w-5 h-5 text-slate-400" />;
-        }
-    };
+
 
     const getSeverityColor = (severity: string) => {
         switch (severity) {
