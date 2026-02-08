@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
           config.headers.Authorization = `Bearer ${storedToken}`;
         }
       }
-    } catch (error) {
+    } catch {
       // Fallback to localStorage token
       const storedToken = localStorage.getItem('firebase_token');
       if (storedToken) {
@@ -38,8 +38,8 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
+  () => {
+    return Promise.reject(new Error('Request failed'));
   }
 );
 
@@ -191,12 +191,13 @@ export const authAPI = {
       });
       console.log('Backend login response:', response.data);
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { message?: string; response?: { data?: unknown; status?: number }; config?: { url?: string } };
       console.error('Backend login API error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        url: error.config?.url,
+        message: apiError.message,
+        response: apiError.response?.data,
+        status: apiError.response?.status,
+        url: apiError.config?.url,
       });
       throw error;
     }

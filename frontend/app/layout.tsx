@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Providers from "@/lib/provider";
 
 const geistSans = Geist({
@@ -25,8 +24,6 @@ export const metadata: Metadata = {
     "theme-color": "#1e3a8a",
   }
 };
-
-const queryClient = new QueryClient();
 
 export default function RootLayout({
   children,
